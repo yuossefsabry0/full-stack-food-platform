@@ -1,0 +1,311 @@
+{
+  "info": {
+    "name": "Food Platform API",
+    "description": "Food ordering backend API (Tasks 1-9). Set baseUrl, then Register -> Login (stores accessToken via test script). Protected folders use Bearer {{accessToken}}.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:3000" },
+    { "key": "accessToken", "value": "" },
+    { "key": "refreshToken", "value": "" },
+    { "key": "resetToken", "value": "" },
+    { "key": "productId", "value": "1" },
+    { "key": "orderId", "value": "1" },
+    { "key": "staffId", "value": "1" }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [{ "key": "token", "value": "{{accessToken}}", "type": "string" }]
+  },
+  "item": [
+    {
+      "name": "Authentication",
+      "item": [
+        {
+          "name": "Register (BASIC)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"name\": \"Demo User\",\n  \"username\": \"demo_user\",\n  \"email\": \"demo@example.com\",\n  \"password\": \"Secret123!\"\n}" },
+            "url": "{{baseUrl}}/api/auth/register"
+          }
+        },
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var json = pm.response.json();",
+                  "if (json.data && json.data.accessToken) pm.collectionVariables.set('accessToken', json.data.accessToken);",
+                  "if (json.data && json.data.refreshToken) pm.collectionVariables.set('refreshToken', json.data.refreshToken);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"username\": \"demo_user\",\n  \"password\": \"Secret123!\"\n}" },
+            "url": "{{baseUrl}}/api/auth/login"
+          }
+        },
+        {
+          "name": "Refresh Token",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"refreshToken\": \"{{refreshToken}}\"\n}" },
+            "url": "{{baseUrl}}/api/auth/refresh"
+          }
+        },
+        {
+          "name": "Forgot Password",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"demo@example.com\"\n}" },
+            "url": "{{baseUrl}}/api/auth/forgot-password"
+          }
+        },
+        {
+          "name": "Verify OTP",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"demo@example.com\",\n  \"otp\": \"123456\"\n}" },
+            "url": "{{baseUrl}}/api/auth/verify-otp"
+          }
+        },
+        {
+          "name": "Reset Password",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"demo@example.com\",\n  \"resetToken\": \"{{resetToken}}\",\n  \"password\": \"NewSecret123!\",\n  \"confirmPassword\": \"NewSecret123!\"\n}" },
+            "url": "{{baseUrl}}/api/auth/reset-password"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Users",
+      "item": [
+        {
+          "name": "Home (authenticated)",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/home" }
+        },
+        {
+          "name": "List Users (Admin)",
+          "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/admin/users?page=1&limit=20", "host": ["{{baseUrl}}"], "path": ["api", "admin", "users"], "query": [{ "key": "page", "value": "1" }, { "key": "limit", "value": "20" }] } }
+        }
+      ]
+    },
+    {
+      "name": "Products",
+      "item": [
+        {
+          "name": "Menu",
+          "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/products?page=1&limit=10", "host": ["{{baseUrl}}"], "path": ["api", "products"], "query": [{ "key": "page", "value": "1" }, { "key": "limit", "value": "10" }] } }
+        },
+        {
+          "name": "Search Products",
+          "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/products?search=burg&page=1&limit=10", "host": ["{{baseUrl}}"], "path": ["api", "products"], "query": [{ "key": "search", "value": "burg" }, { "key": "page", "value": "1" }, { "key": "limit", "value": "10" }] } }
+        },
+        {
+          "name": "Product Details",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/products/{{productId}}" }
+        }
+      ]
+    },
+    {
+      "name": "Cart",
+      "item": [
+        {
+          "name": "View Cart",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/cart" }
+        },
+        {
+          "name": "Add to Cart",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"productId\": 1,\n  \"quantity\": 2\n}" },
+            "url": "{{baseUrl}}/api/cart/items"
+          }
+        },
+        {
+          "name": "Update Quantity (set)",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"quantity\": 3\n}" },
+            "url": "{{baseUrl}}/api/cart/items/{{productId}}"
+          }
+        },
+        {
+          "name": "Increase Quantity",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"action\": \"increase\"\n}" },
+            "url": "{{baseUrl}}/api/cart/items/{{productId}}"
+          }
+        },
+        {
+          "name": "Decrease Quantity",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"action\": \"decrease\"\n}" },
+            "url": "{{baseUrl}}/api/cart/items/{{productId}}"
+          }
+        },
+        {
+          "name": "Remove From Cart",
+          "request": { "method": "DELETE", "url": "{{baseUrl}}/api/cart/items/{{productId}}" }
+        },
+        {
+          "name": "Confirm Order",
+          "request": { "method": "POST", "url": "{{baseUrl}}/api/cart/confirm" }
+        }
+      ]
+    },
+    {
+      "name": "Orders",
+      "item": [
+        {
+          "name": "Checkout (Delivery Address)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"name\": \"Demo User\",\n  \"address\": \"Flat 5\",\n  \"buildingNumber\": \"12\",\n  \"apartmentNumber\": \"5\",\n  \"streetName\": \"Main St\",\n  \"phoneNumber\": \"+1000000\"\n}" },
+            "url": "{{baseUrl}}/api/orders/checkout"
+          }
+        },
+        {
+          "name": "List My Orders",
+          "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/orders?page=1&limit=10", "host": ["{{baseUrl}}"], "path": ["api", "orders"], "query": [{ "key": "page", "value": "1" }, { "key": "limit", "value": "10" }] } }
+        },
+        {
+          "name": "Order Details",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/orders/{{orderId}}" }
+        }
+      ]
+    },
+    {
+      "name": "CHEF",
+      "item": [
+        {
+          "name": "Request Orders",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/chef/requests" }
+        },
+        {
+          "name": "Prepare Order",
+          "request": { "method": "POST", "url": "{{baseUrl}}/api/chef/requests/{{orderId}}/prepare" }
+        },
+        {
+          "name": "Previous Orders",
+          "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/chef/history?page=1&limit=10", "host": ["{{baseUrl}}"], "path": ["api", "chef", "history"], "query": [{ "key": "page", "value": "1" }, { "key": "limit", "value": "10" }] } }
+        }
+      ]
+    },
+    {
+      "name": "DELIVERY",
+      "item": [
+        {
+          "name": "Current Orders",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/delivery/orders/current" }
+        },
+        {
+          "name": "Accept Order",
+          "request": { "method": "POST", "url": "{{baseUrl}}/api/delivery/orders/{{orderId}}/accept" }
+        },
+        {
+          "name": "Mark Delivered",
+          "request": { "method": "POST", "url": "{{baseUrl}}/api/delivery/orders/{{orderId}}/deliver" }
+        },
+        {
+          "name": "Previous Orders",
+          "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/delivery/orders/previous?page=1&limit=10", "host": ["{{baseUrl}}"], "path": ["api", "delivery", "orders", "previous"], "query": [{ "key": "page", "value": "1" }, { "key": "limit", "value": "10" }] } }
+        }
+      ]
+    },
+    {
+      "name": "ADMIN",
+      "item": [
+        {
+          "name": "Dashboard",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/admin" }
+        },
+        {
+          "name": "List Products",
+          "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/admin/products?page=1&limit=20", "host": ["{{baseUrl}}"], "path": ["api", "admin", "products"], "query": [{ "key": "page", "value": "1" }, { "key": "limit", "value": "20" }] } }
+        },
+        {
+          "name": "Add Product",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"name\": \"Margherita Pizza\",\n  \"description\": \"Classic cheese pizza\",\n  \"price\": 8.99,\n  \"imageUrl\": \"http://img/pizza.png\",\n  \"isActive\": true\n}" },
+            "url": "{{baseUrl}}/api/admin/products"
+          }
+        },
+        {
+          "name": "Edit Product",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"price\": 9.49,\n  \"isActive\": true\n}" },
+            "url": "{{baseUrl}}/api/admin/products/{{productId}}"
+          }
+        },
+        {
+          "name": "List Orders (filtered)",
+          "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/admin/orders?status=PENDING&page=1&limit=20&sortBy=id&sortOrder=desc", "host": ["{{baseUrl}}"], "path": ["api", "admin", "orders"], "query": [{ "key": "status", "value": "PENDING" }, { "key": "page", "value": "1" }, { "key": "limit", "value": "20" }, { "key": "sortBy", "value": "id" }, { "key": "sortOrder", "value": "desc" }] } }
+        },
+        {
+          "name": "List Staff",
+          "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/admin/staff?role=CHEF", "host": ["{{baseUrl}}"], "path": ["api", "admin", "staff"], "query": [{ "key": "role", "value": "CHEF" }] } }
+        },
+        {
+          "name": "Create CHEF Account",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"name\": \"Chef Sam\",\n  \"username\": \"chef_sam\",\n  \"email\": \"chef@example.com\",\n  \"password\": \"Secret123!\",\n  \"role\": \"CHEF\"\n}" },
+            "url": "{{baseUrl}}/api/admin/staff"
+          }
+        },
+        {
+          "name": "Create DELIVERY Account",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"name\": \"Courier Mo\",\n  \"username\": \"courier_mo\",\n  \"email\": \"courier@example.com\",\n  \"password\": \"Secret123!\",\n  \"role\": \"DELIVERY\"\n}" },
+            "url": "{{baseUrl}}/api/admin/staff"
+          }
+        },
+        {
+          "name": "Edit Staff",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"name\": \"Chef Samuel\",\n  \"isActive\": true\n}" },
+            "url": "{{baseUrl}}/api/admin/staff/{{staffId}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Analytics",
+      "item": [
+        {
+          "name": "Sales Analytics",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/admin/analytics" }
+        }
+      ]
+    }
+  ]
+}

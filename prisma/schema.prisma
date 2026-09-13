@@ -1,0 +1,229 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  BASIC
+  CHEF
+  DELIVERY
+  ADMIN
+}
+
+enum AuthTokenType {
+  ACCESS
+  REFRESH
+}
+
+enum OrderStatus {
+  PENDING
+  PREPARING
+  READY_FOR_DELIVERY
+  OUT_FOR_DELIVERY
+  DELIVERED
+}
+
+model User {
+  // Internal database ID — used by every relation. Never shown as user code.
+  id           Int      @id @default(autoincrement())
+  // Public User ID / User Code — exposed to clients. Stored as String so the
+  // format can grow from 5 digits to 6+ digits without touching relations.
+  publicId     String   @unique @db.VarChar(16)
+  name         String   @db.VarChar(120)
+  username     String   @unique @db.VarChar(60)
+  email        String   @unique @db.VarChar(190)
+  passwordHash String   @db.VarChar(255)
+  role         Role     @default(BASIC)
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  authTokens     AuthToken[]
+  passwordResetOtps PasswordResetOtp[]
+  cart           Cart?
+  orders         Order[]
+  
+  preparedOrders Order[] @relation("PreparedOrders")
+  deliveredOrders Order[] @relation("DeliveredOrders")
+  chefProfile    ChefProfile?
+  deliveryProfile DeliveryProfile?
+
+  @@index([role])
+  @@map("users")
+}
+
+// Singleton counter for sequential publicId allocation.
+// Seed row: id = 1, lastValue = 9999 (so first allocation = 10000)
+model UserPublicIdCounter {
+  id        Int @id @default(1)
+  lastValue Int @default(9999)
+
+  @@map("user_public_id_counter")
+}
+
+model AuthToken {
+  id        Int           @id @default(autoincrement())
+  userId    Int
+  user      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      AuthTokenType
+  // SHA-256 hex of the token (never store raw tokens)
+  tokenHash String        @unique @db.VarChar(128)
+  expiresAt DateTime
+  revokedAt DateTime?
+  createdAt DateTime      @default(now())
+
+  @@index([userId, type])
+  @@map("auth_tokens")
+}
+
+model PasswordResetOtp {
+  id                  Int       @id @default(autoincrement())
+  userId              Int
+  user                User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  // bcrypt hash of the 6-digit OTP (never the OTP itself)
+  otpHash             String    @db.VarChar(255)
+  expiresAt           DateTime
+  attempts            Int       @default(0)
+  consumedAt          DateTime?
+  verifiedAt          DateTime?
+  // SHA-256 hex of the single-use reset token issued after OTP verification
+  resetTokenHash      String?   @unique @db.VarChar(128)
+  resetTokenExpiresAt DateTime?
+  resetConsumedAt     DateTime?
+  createdAt           DateTime  @default(now())
+
+  @@index([userId, createdAt])
+  @@map("password_reset_otps")
+}
+
+// Role-specific data lives in its own tables so future role features never
+// require changing the User table shape or existing rows
+model ChefProfile {
+  id         Int      @id @default(autoincrement())
+  userId     Int      @unique
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  displayName String? @db.VarChar(120)
+  bio        String? @db.Text
+  isApproved Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@map("chef_profiles")
+}
+
+model DeliveryProfile {
+  id          Int      @id @default(autoincrement())
+  userId      Int      @unique
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  vehicleInfo String?  @db.VarChar(190)
+  isApproved  Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("delivery_profiles")
+}
+
+
+model Product {
+  id          Int      @id @default(autoincrement())
+  sku         String?  @unique @db.VarChar(60)
+  name        String   @db.VarChar(150)
+  description String?  @db.Text
+  price       Decimal  @db.Decimal(10, 2)
+  imageUrl    String?  @db.VarChar(500)
+  // Active/inactive status: products are deactivated (isActive = false),
+  // never deleted, so historical Orders (OrderItem snapshots + SetNull)
+  // remain valid after deactivation
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  cartItems  CartItem[]
+  orderItems OrderItem[]
+
+  @@index([isActive])
+  @@map("products")
+}
+
+model Cart {
+  id        Int      @id @default(autoincrement())
+  userId    Int      @unique
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  items CartItem[]
+
+  @@map("carts")
+}
+
+model CartItem {
+  id        Int      @id @default(autoincrement())
+  cartId    Int
+  cart      Cart     @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  productId Int
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Restrict)
+  quantity  Int      @default(1)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([cartId, productId])
+  @@map("cart_items")
+}
+
+model Order {
+  id        Int         @id @default(autoincrement())
+  // Internal User ID link (never the public user code).
+  userId    Int
+  user      User        @relation(fields: [userId], references: [id], onDelete: Restrict)
+  status    OrderStatus @default(PENDING)
+  subtotal    Decimal @db.Decimal(10, 2)
+  deliveryFee Decimal @db.Decimal(10, 2)
+  total       Decimal @db.Decimal(10, 2)
+  // Delivery Address snapshot (all required at checkout)
+  recipientName   String @db.VarChar(120)
+  address         String @db.VarChar(255)
+  buildingNumber  String @db.VarChar(40)
+  apartmentNumber String @db.VarChar(40)
+  streetName      String @db.VarChar(150)
+  phoneNumber     String @db.VarChar(40)
+  chefId     Int?
+  chef       User?    @relation("PreparedOrders", fields: [chefId], references: [id], onDelete: SetNull)
+  preparedAt DateTime?
+  // DELIVERY acceptance/completion tracking. deliveryId records the
+  // internal ID of the DELIVERY who accepted the order (retained forever so
+  // the deliverer is always identifiable); acceptedAt / deliveredAt record
+  // when. All stay null until acceptance.
+  deliveryId  Int?
+  deliveredBy User?    @relation("DeliveredOrders", fields: [deliveryId], references: [id], onDelete: SetNull)
+  acceptedAt  DateTime?
+  deliveredAt DateTime?
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+
+  items OrderItem[]
+
+  @@index([userId, status])
+  @@index([status])
+  @@index([chefId])
+  @@index([deliveryId])
+  @@map("orders")
+}
+
+model OrderItem {
+  id          Int      @id @default(autoincrement())
+  orderId     Int
+  order       Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId   Int?
+  product     Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+  productName String   @db.VarChar(150)
+  quantity    Int
+  unitPrice   Decimal  @db.Decimal(10, 2)
+  lineTotal   Decimal  @db.Decimal(10, 2)
+
+  @@map("order_items")
+}
