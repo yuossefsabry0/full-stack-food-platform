@@ -1,0 +1,198 @@
+/* Home showcase: scrollable sections, subtle reveal, hover zoom.
+ * Animations are plain CSS transitions only (no library). */
+
+.page {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 32px 16px 72px;
+}
+
+/* Scroll-reveal primitive (toggled by Reveal.jsx via IntersectionObserver). */
+:global(.reveal) {
+  opacity: 0;
+  transform: translateY(18px);
+  transition: opacity 0.6s ease, transform 0.6s ease;
+}
+
+:global(.reveal.isVisible) {
+  opacity: 1;
+  transform: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :global(.reveal) {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+}
+
+.hero {
+  display: grid;
+  grid-template-columns: 1.05fr 1fr;
+  gap: 32px;
+  align-items: center;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+  padding: 32px;
+  box-shadow: 0 1px 2px rgba(16, 24, 40, 0.05);
+}
+
+@media (max-width: 820px) {
+  .hero {
+    grid-template-columns: 1fr;
+  }
+}
+
+.eyebrow {
+  color: #1e3a8a;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 12px;
+  margin: 0 0 8px;
+}
+
+.title {
+  font-size: 40px;
+  line-height: 1.1;
+  margin: 0 0 12px;
+}
+
+.subtitle {
+  color: #4b5563;
+  font-size: 17px;
+  margin: 0 0 8px;
+}
+
+.hint {
+  color: #6b7280;
+  font-size: 13px;
+  margin: 8px 0 0;
+}
+
+.heroText,
+.heroMedia {
+  min-width: 0;
+}
+
+.section {
+  margin-top: 48px;
+}
+
+.sectionTitle {
+  font-size: 26px;
+  margin: 0 0 6px;
+}
+
+.sectionSub {
+  color: #6b7280;
+  margin: 0 0 18px;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 18px;
+}
+
+@media (max-width: 820px) {
+  .grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 520px) {
+  .grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.tile {
+  margin: 0;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+/* Hover zoom: smooth scale-up on mouse-over, smooth return on leave. */
+.zoomFrame {
+  overflow: hidden;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #e0e7ff 0%, #fef3c7 100%);
+  aspect-ratio: 4 / 3;
+}
+
+.zoomFrame img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.45s ease;
+}
+
+.zoomFrame:hover img {
+  transform: scale(1.06);
+}
+
+.caption {
+  padding: 10px 14px 14px;
+  font-weight: 600;
+}
+
+.story {
+  display: grid;
+  grid-template-columns: 1fr 1.1fr;
+  gap: 28px;
+  align-items: center;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+  padding: 28px;
+}
+
+@media (max-width: 820px) {
+  .story {
+    grid-template-columns: 1fr;
+  }
+}
+
+.storyMedia {
+  min-width: 0;
+}
+
+.list {
+  padding-left: 20px;
+  color: #374151;
+}
+
+.highlights {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 18px;
+}
+
+@media (max-width: 820px) {
+  .highlights {
+    grid-template-columns: 1fr;
+  }
+}
+
+.highlightCard {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 20px;
+}
+
+.highlightCard h3 {
+  margin: 0 0 6px;
+  font-size: 17px;
+}
+
+.highlightCard p {
+  margin: 0;
+  color: #6b7280;
+  font-size: 14px;
+}
