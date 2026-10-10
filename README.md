@@ -147,11 +147,13 @@ The dev server port (5173) is the backend's dev-like `CORS_ORIGIN` default, so t
 
 Cross-role access returns `403 FORBIDDEN`; e.g. chefs cannot touch carts and couriers cannot read other couriers' queues beyond shared `READY_FOR_DELIVERY` listings.
 
+There are no teacher, student, or super-admin accounts in this project. A “student” need maps to the existing `BASIC` customer account (register → login → menu/cart/orders); no new role is required. No `SUPER_ADMIN` role exists by design: there is a single `ADMIN` created only via seed with no create-admin endpoint, other `ADMIN` rows are untouchable via API (404 except self-deactivation 400), and any elevated recovery should extend audited `ADMIN` actions rather than adding a new role.
+
 ## Products
 
 `GET /api/products` (menu: id, name, price, image, description, details link; active only) with `page`/`limit` (limit ≤ 50) and optional case-insensitive partial `search` (2–3 letters match). `GET /api/products/:id` shows name/price/image/description plus the add-to-cart operation. Admin manages products (add/edit/price/name/description/image/activate/deactivate) with soft-deactivation only.
 
-Search implementation note: `search` is a `LIKE '%term%'` scan, so a B-tree index would not help the leading-wildcard match (no index, migration, or code change added for this). Case-insensitivity depends on the MySQL collation (`utf8mb4_unicode_ci` in the test setup). This is fine for a small catalog; when the catalog grows, the future option is a `FULLTEXT` index on `name`/`description` plus a `MATCH ... AGAINST` query change.
+Search implementation note: `search` is a `LIKE '%term%'` scan, so a B-tree index would not help the leading-wildcard match (a `@@index([name])` exists for prefix-ordered scans and admin lookups). Case-insensitivity depends on the MySQL collation (`utf8mb4_unicode_ci` in the test setup). This is fine for a small catalog; when `USE_FULLTEXT_SEARCH="true"` the menu tries a guarded `MATCH(name) AGAINST (...)` path with silent `LIKE` fallback when the `FULLTEXT` index is absent or the query fails.
 
 ## Cart
 
@@ -159,15 +161,17 @@ Authenticated BASIC cart derived from the JWT identity (no cart ids from clients
 
 ## Orders
 
-Checkout posts the full delivery address (all six fields required by Zod) and atomically creates the order + snapshot items + clears the cart in one transaction (cart clears only on full success). One active (non-`DELIVERED`) order per BASIC user. Orders are immutable after confirmation and visible only to their owner (plus role queues/admin). Reads are paginated.
+Checkout posts the full delivery address (all six fields required by Zod) and atomically creates the order + snapshot items + clears the cart in one transaction (cart clears only on full success). One active (non-`DELIVERED`) order per BASIC user. Optional `Idempotency-Key` header (1–128 chars) replays the original order for the same user instead of creating a duplicate (in-memory, 24h, capped; restarts fall back to the `409` guard). Orders are immutable after confirmation and visible only to their owner (plus role queues/admin). Reads are paginated. `order.created` / `order.delivered` webhooks fire-and-forget to `ORDER_EVENT_ENDPOINT` when set (failures only logged).
 
 ## Order Lifecycle
 
 ```
-PENDING → PREPARING → READY_FOR_DELIVERY → OUT_FOR_DELIVERY → DELIVERED
+PENDING → READY_FOR_DELIVERY → OUT_FOR_DELIVERY → DELIVERED
 ```
 
-The database stores only these English enum values. API responses add display labels: PENDING = “In Progress”, PREPARING = “Your order has been prepared by the restaurant”, READY_FOR_DELIVERY = “Ready for Delivery”, OUT_FOR_DELIVERY = “The order has gone out for delivery by the Delivery”, DELIVERED = “The order has been delivered”.
+Implemented transitions: chef moves `PENDING` straight to `READY_FOR_DELIVERY`; delivery moves `READY_FOR_DELIVERY → OUT_FOR_DELIVERY → DELIVERED`. `PREPARING` remains a reserved enum/label value (stored type + display label exist) but is never written by the API; the admin UI offers no `PREPARING` filter so queries cannot return a dead empty set.
+
+The database stores only these English enum values. API responses add display labels: PENDING = “In Progress”, PREPARING = “Your order has been prepared by the restaurant” (reserved), READY_FOR_DELIVERY = “Ready for Delivery”, OUT_FOR_DELIVERY = “The order has gone out for delivery by the Delivery”, DELIVERED = “The order has been delivered”.
 
 ## CHEF Workflow
 
@@ -179,7 +183,7 @@ The database stores only these English enum values. API responses add display la
 
 ## ADMIN Workflow
 
-`GET /api/admin` dashboard (links). Users: paginated list returning only name/username/userCode/email. Products: view (incl. inactive), add, edit, activate/deactivate — never hard-delete. Orders: all current orders with status/date/user/delivery/chef/order filters plus pagination and sorting; `OUT_FOR_DELIVERY` rows carry `deliveryId`; chef/delivery histories via `chefId`/`deliveryId`. Staff: create CHEF/DELIVERY (role enum blocks ADMIN; hashed password; public code; immediately login-capable), view, edit, activate/deactivate via `isActive` (never delete; ADMIN accounts untouchable here).
+`GET /api/admin` dashboard (links). Users: paginated list returning id + name/username/userCode/email (the internal `id` drives order filters and staff edits; `userCode` stays the display code). Products: view (incl. inactive), add, edit, activate/deactivate — never hard-delete. Orders: all current orders with status/date/user/delivery/chef/order filters plus pagination and sorting; `OUT_FOR_DELIVERY` rows carry `deliveryId`; chef/delivery histories via `chefId`/`deliveryId`. Staff: create CHEF/DELIVERY (role enum blocks ADMIN; hashed password; public code; immediately login-capable), view (incl. internal `id`), edit, activate/deactivate via `isActive` (never delete; other ADMIN accounts return 404 here, and self-deactivation returns 400 `CANNOT_DEACTIVATE_SELF`).
 
 ## Analytics
 
@@ -191,7 +195,7 @@ Bcrypt password hashing; JWT access + separate refresh secrets/expiry with rotat
 
 ## Rate Limiting
 
-Fixed-window in-memory limiter keyed by client IP (proxy-aware via `TRUST_PROXY`) and, where relevant, email or user id. Budgeted: login, register, refresh, forgot-password, OTP verify/reset, checkout (per user). Emits `429 RATE_LIMITED` with `Retry-After`. Budgets are env-tunable (see table above). The in-memory limiter is single-instance only: counters live in the Node process, so horizontal scaling needs sticky sessions or the optional Redis store. Set `REDIS_URL` to share counters across instances (same limits and responses); the Redis client is reused across requests, and any Redis runtime failure falls back to the in-memory store without blocking requests.
+Fixed-window limiter keyed by client IP (proxy-aware via `TRUST_PROXY`) and, where relevant, email/username or user id. Budgeted: login (per IP + username), register, refresh, forgot-password, OTP verify/reset, checkout (per user), plus generous per-user write budgets on admin product/staff, chef prepare, and delivery accept/deliver. Emits `429 RATE_LIMITED` with `Retry-After`. Budgets are env-tunable (see table above). The in-memory limiter is single-instance only: counters live in the Node process, so horizontal scaling needs sticky sessions or the optional Redis store. Set `REDIS_URL` to share counters across instances (same limits and responses); the Redis client is reused across requests, and any Redis runtime failure falls back to the in-memory store for 30s without blocking requests, then re-probes.
 
 ## Testing
 
@@ -219,7 +223,7 @@ Unit tests (`tests/unit/`) cover pure logic with no database: status labels, nav
 
 ## Swagger
 
-Interactive UI at `GET /api/docs`, machine-readable OpenAPI 3.0 at `GET /api/docs.json` (`docs/openapi.json`): methods, URLs, headers, auth/authorization, parameters, bodies, validation, success/error responses, and schemas for all 35 routes. A test asserts every Express route is documented and no documented path is stale.
+Interactive UI at `GET /api/docs`, machine-readable OpenAPI 3.0 at `GET /api/docs.json` (`docs/openapi.json`): methods, URLs, headers, auth/authorization, parameters, bodies, validation, success/error responses, and schemas for the documented paths. A test asserts every Express route is documented and no documented path is stale.
 
 ## Postman
 
@@ -227,7 +231,7 @@ Interactive UI at `GET /api/docs`, machine-readable OpenAPI 3.0 at `GET /api/doc
 
 ## Logging
 
-Winston JSON-lines file (`LOG_FILE`, default `logs/operational.log`, `LOG_LEVEL` tunable): timestamp, level, method, full route, status code, duration, and error code/message. Request bodies, query strings, headers, passwords, tokens, and OTPs are never recorded (sensitive keys are redacted by `sanitize`). This file is purely operational and separate from any future admin activity-history feature.
+Winston JSON-lines file (`LOG_FILE`, default `logs/operational.log`, `LOG_LEVEL` tunable, 5MB × 5 files rotation): timestamp, level, method, route path (no query string), status code, duration, and error code/message. Validation/404/rate-limit rejections are logged at warn level; 500s at error with sanitized stacks. Admin product/staff creates and updates also append best-effort `audit` lines (actor, action, target id) without passwords or tokens. Request bodies, query strings, headers, passwords, tokens, and OTPs are never recorded (sensitive keys are redacted by `sanitize`). This file is operational; a future DB-backed admin history remains optional.
 
 ## API Usage
 
@@ -251,7 +255,7 @@ curl -X POST localhost:3000/api/orders/checkout \
   -d '{"name":"Ted","address":"Flat 5","buildingNumber":"12","apartmentNumber":"5","streetName":"Main St","phoneNumber":"+1000000"}'
 ```
 
-Every response uses the envelope `{ success, message, data, navigation, meta }` (errors: `{ success:false, message, code, errors }`), where `navigation.links`/`navigation.next` describe the available next actions for a future frontend.
+Every response uses the envelope `{ success, message, data, navigation, meta }` (errors: `{ success:false, message, code, errors }`), where `navigation.links`/`navigation.next` describe the available next actions for a future frontend. `data` shapes vary by endpoint by design (`{ cart }`, `{ preview }`, `{ order }`, `{ items }`, `{ product }`, `{ analytics }`); paginated lists carry top-level `meta { page, limit, total, totalPages }`, while unbounded queue reads (`GET /api/chef/requests`, `GET /api/delivery/orders/current`) return `data.items` without `meta`. New keys are additive only.
 
 ## Future Extensibility
 

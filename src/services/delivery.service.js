@@ -1,7 +1,7 @@
 'use strict';
 
 const prisma = require('../config/database');
-const { toOrderShape } = require('./order.service');
+const { toOrderShape, notifyOrderEvent } = require('./order.service');
 const { orderStatusLabel } = require('../utils/orderStatus');
 
 function toDeliveryOrderShape(order, items, viewerDeliveryId) {
@@ -123,10 +123,7 @@ async function acceptOrder(deliveryUserId, orderId) {
 }
 
 async function deliverOrder(deliveryUserId, orderId) {
-  const order = await prisma.order.findUnique({
-    where: { id: orderId },
-    include: { items: { orderBy: { id: 'asc' } } },
-  });
+  const order = await prisma.order.findUnique({ where: { id: orderId } });
   if (!order) {
     const err = new Error('Order not found');
     err.statusCode = 404;
@@ -134,16 +131,36 @@ async function deliverOrder(deliveryUserId, orderId) {
     throw err;
   }
   // Only the accepting courier, only while carrying it, can complete it.
-  if (order.status !== 'OUT_FOR_DELIVERY' || order.deliveryId !== deliveryUserId) {
+  // Conditional transition: a concurrent double-deliver collapses to one
+  // winner; the loser re-reads to preserve the 404/409 distinction.
+  const transitioned = await prisma.order.updateMany({
+    where: { id: orderId, status: 'OUT_FOR_DELIVERY', deliveryId: deliveryUserId },
+    data: { status: 'DELIVERED', deliveredAt: new Date() },
+  });
+  if (transitioned.count !== 1) {
+    const current = await prisma.order.findUnique({ where: { id: orderId } });
+    if (!current) {
+      const err = new Error('Order not found');
+      err.statusCode = 404;
+      err.code = 'ORDER_NOT_FOUND';
+      throw err;
+    }
     const err = new Error('Order cannot be marked as delivered');
     err.statusCode = 409;
     err.code = 'ORDER_NOT_DELIVERABLE';
     throw err;
   }
-  const updated = await prisma.order.update({
-    where: { id: order.id },
-    data: { status: 'DELIVERED', deliveredAt: new Date() },
+  const updated = await prisma.order.findUnique({
+    where: { id: orderId },
     include: { items: { orderBy: { id: 'asc' } } },
+  });
+  // Fire-and-forget: never blocks or fails delivery.
+  void notifyOrderEvent({
+    event: 'order.delivered',
+    orderId: updated.id,
+    userId: updated.userId,
+    status: updated.status,
+    total: Number(updated.total),
   });
   return toDeliveryOrderShape(updated, updated.items, deliveryUserId);
 }

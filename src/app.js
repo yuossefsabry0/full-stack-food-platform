@@ -10,10 +10,17 @@ const { requestLogger } = require('./middlewares/requestLogger.middleware');
 
 const app = express();
 
+// Do not advertise the framework in responses (fingerprinting hygiene).
+app.disable('x-powered-by');
+
 // deployment/proxy-aware client IP (rate limiting keys on req.ip).
 app.set('trust proxy', env.trustProxy);
 
-// security headers.
+// security headers (helmet defaults; API serves JSON only).
+// Note: frontend token storage (localStorage) and the httpOnly-cookie
+// migration remain documented in docs/security-notes.md; that migration
+// needs a cookie parser + CORS credentials change and is intentionally not
+// done here to avoid new dependencies and contract breaks.
 app.use(helmet());
 
 // CORS configuration (origins from environment).

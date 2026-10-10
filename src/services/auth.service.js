@@ -84,13 +84,15 @@ async function loginBasicUser({ username, password }) {
   });
 
   // Record the access token (hashed) for future auditing/revocation.
+  // DB expiry is derived from the token's own exp so rows never diverge
+  // from what the JWT verifier enforces.
   try {
     await prisma.authToken.create({
       data: {
         userId: user.id,
         type: 'ACCESS',
         tokenHash: sha256Hex(accessToken),
-        expiresAt: accessTokenExpiryDate(),
+        expiresAt: accessTokenExpiryDate(accessToken),
       },
     });
   } catch (e) {
@@ -105,7 +107,7 @@ async function loginBasicUser({ username, password }) {
         userId: user.id,
         type: 'REFRESH',
         tokenHash: sha256Hex(refreshToken),
-        expiresAt: refreshTokenExpiryDate(),
+        expiresAt: refreshTokenExpiryDate(refreshToken),
       },
     });
   } catch (e) {
@@ -175,7 +177,7 @@ async function refreshAccessToken(presentedRefreshToken) {
         userId: user.id,
         type: 'ACCESS',
         tokenHash: sha256Hex(accessToken),
-        expiresAt: accessTokenExpiryDate(),
+        expiresAt: accessTokenExpiryDate(accessToken),
       },
     }),
     prisma.authToken.create({
@@ -183,7 +185,7 @@ async function refreshAccessToken(presentedRefreshToken) {
         userId: user.id,
         type: 'REFRESH',
         tokenHash: sha256Hex(refreshToken),
-        expiresAt: refreshTokenExpiryDate(),
+        expiresAt: refreshTokenExpiryDate(refreshToken),
       },
     }),
   ]);
@@ -196,6 +198,17 @@ async function refreshAccessToken(presentedRefreshToken) {
 async function revokeRefreshTokensForUser(userId) {
   await prisma.authToken.updateMany({
     where: { userId, type: 'REFRESH', revokedAt: null },
+    data: { revokedAt: new Date() },
+  });
+}
+
+// revoke every active token row (ACCESS + REFRESH) for a user. Used after
+// a password change so a previously issued access token cannot survive the
+// reset until its JWT expiry. Preserves revokeRefreshTokensForUser above
+// for callers that only need refresh revocation.
+async function revokeAllTokensForUser(userId) {
+  await prisma.authToken.updateMany({
+    where: { userId, revokedAt: null },
     data: { revokedAt: new Date() },
   });
 }
@@ -249,6 +262,7 @@ module.exports = {
   loginBasicUser,
   refreshAccessToken,
   revokeRefreshTokensForUser,
+  revokeAllTokensForUser,
   logoutUser,
   purgeExpiredAuthTokens,
   toPublicUser,

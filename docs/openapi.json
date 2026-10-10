@@ -168,8 +168,9 @@
       },
       "CustomerRow": {
         "type": "object",
-        "required": ["name", "username", "userCode", "email"],
+        "required": ["id", "name", "username", "userCode", "email"],
         "properties": {
+          "id": { "type": "integer", "description": "Internal user ID (drives admin order filters and staff edits); userCode stays the display code" },
           "name": { "type": "string" },
           "username": { "type": "string" },
           "userCode": { "type": "string" },
@@ -194,6 +195,7 @@
       "StaffRow": {
         "type": "object",
         "properties": {
+          "id": { "type": "integer", "description": "Internal user ID used by PATCH /api/admin/staff/{id}" },
           "userCode": { "type": "string" },
           "name": { "type": "string" },
           "username": { "type": "string" },
@@ -541,8 +543,9 @@
       "post": {
         "tags": ["Orders"],
         "summary": "Delivery address + order creation (BASIC)",
-        "description": "Creates the order, snapshots items, clears the cart in one transaction. Single-active-order rule: at most one active (non-DELIVERED) order per BASIC user; checkout while another order is active returns 409 ACTIVE_ORDER_EXISTS. Check POST /api/cart/confirm (canCheckout, activeOrderId) before posting.",
+        "description": "Creates the order, snapshots items, clears the cart in one transaction. Single-active-order rule: at most one active (non-DELIVERED) order per BASIC user; checkout while another order is active returns 409 ACTIVE_ORDER_EXISTS. Check POST /api/cart/confirm (canCheckout, activeOrderId) before posting. Optional Idempotency-Key header replays the original order for the same user instead of creating a duplicate.",
         "security": [{ "bearerAuth": [] }],
+        "parameters": [{ "name": "Idempotency-Key", "in": "header", "required": false, "schema": { "type": "string", "maxLength": 128 }, "description": "Optional client-generated key (1-128 chars); same user + same key returns the original order" }],
         "requestBody": {
           "required": true,
           "content": { "application/json": { "schema": { "$ref": "#/components/schemas/DeliveryAddress" } } }
@@ -715,8 +718,8 @@
     "/api/admin/users": {
       "get": {
         "tags": ["Admin"],
-        "summary": "List users: name, username, code, email only (ADMIN)",
-        "description": "Passwords (hashed or not) are never returned.",
+        "summary": "List users: id, name, username, code, email (ADMIN)",
+        "description": "Passwords (hashed or not) are never returned. The additive internal id drives admin order filters and staff edits; userCode stays the display code. Envelope shapes vary by endpoint by design; paginated lists carry top-level meta while queue reads return data.items without meta.",
         "security": [{ "bearerAuth": [] }],
         "parameters": [
           { "name": "page", "in": "query", "schema": { "type": "integer", "minimum": 1, "default": 1 } },

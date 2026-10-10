@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { api } from '../api/client.js';
 import { ADMIN_LINKS, RoleHeader } from '../components/RoleHeader.jsx';
 
@@ -11,8 +12,9 @@ function listOf(res) {
 }
 
 export default function AdminOrders() {
+  const [params, setParams] = useSearchParams();
+  const status = params.get('status') || '';
   const [orders, setOrders] = useState([]);
-  const [status, setStatus] = useState('');
   const [error, setError] = useState('');
 
   async function load(s = '') {
@@ -26,8 +28,8 @@ export default function AdminOrders() {
   }
 
   useEffect(() => {
-    load();
-  }, []);
+    load(status);
+  }, [status]);
 
   return (
     <>
@@ -41,17 +43,20 @@ export default function AdminOrders() {
           }}
           style={{ display: 'flex', gap: 8, marginBottom: 16 }}
         >
-          <select className="input" value={status} onChange={(e) => setStatus(e.target.value)}>
+          <select className="input" value={status} onChange={(e) => setParams(e.target.value ? { status: e.target.value } : {})} aria-label="Filter orders by status">
             <option value="">All statuses</option>
             <option value="PENDING">PENDING</option>
-            <option value="PREPARING">PREPARING</option>
+            {/* PREPARING is a reserved enum value never written by the API
+                (chef moves PENDING straight to READY_FOR_DELIVERY); no option
+                is offered so the filter cannot return a dead empty set. */}
             <option value="READY_FOR_DELIVERY">READY_FOR_DELIVERY</option>
             <option value="OUT_FOR_DELIVERY">OUT_FOR_DELIVERY</option>
             <option value="DELIVERED">DELIVERED</option>
           </select>
           <button className="btn btn-primary" type="submit">Filter</button>
         </form>
-        {error && <p className="error">{error}</p>}
+        {error && <p className="error" role="alert">{error}</p>}
+        {orders.length === 0 && !error && <p className="muted">No orders match this filter. Try clearing the status.</p>}
         {orders.map((o) => (
           <div className="card" key={o.id} style={{ marginBottom: 10 }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>

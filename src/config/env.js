@@ -36,6 +36,17 @@ const env = {
   // OTP dev exposure: devOtp in the response + console logging only when
   // OTP_DEV_EXPOSE is the string "true" AND the env is dev-like.
   otpDevExpose: process.env.OTP_DEV_EXPOSE || 'false',
+  // Optional HTTP email hook for OTP delivery (no new dependencies).
+  // When unset, non-production uses the dev log and production logs
+  // "unconfigured" while keeping the generic anti-enumeration response.
+  emailHttpEndpoint: process.env.EMAIL_HTTP_ENDPOINT || '',
+  emailApiKey: process.env.EMAIL_API_KEY || '',
+  // Optional order-event webhook (fire-and-forget, failures only logged).
+  // When unset, no event is sent. No response contract changes.
+  orderEventEndpoint: process.env.ORDER_EVENT_ENDPOINT || '',
+  // Guarded FULLTEXT menu search: only attempted when "true", with silent
+  // LIKE fallback when the index is absent or the query fails.
+  useFulltextSearch: process.env.USE_FULLTEXT_SEARCH === 'true',
   //  Delivery Fee (not hard-coded in controllers/business logic).
   deliveryFee: Number.isFinite(Number(process.env.DELIVERY_FEE)) && Number(process.env.DELIVERY_FEE) >= 0
     ? Number(process.env.DELIVERY_FEE)

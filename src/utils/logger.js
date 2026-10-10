@@ -20,7 +20,14 @@ function resolveLogFile() {
 }
 
 const LOG_FILE = resolveLogFile();
-fs.mkdirSync(path.dirname(LOG_FILE), { recursive: true });
+try {
+  fs.mkdirSync(path.dirname(LOG_FILE), { recursive: true });
+} catch (err) {
+  // Unwritable log path must not crash startup; winston falls back to
+  // console below and the error is reported once.
+  // eslint-disable-next-line no-console
+  console.error(`Log directory unavailable (${LOG_FILE}):`, err && err.message);
+}
 
 const SENSITIVE_KEY = /(password|passwd|token|otp|secret|authorization|cookie)/i;
 
@@ -47,7 +54,9 @@ const logger = winston.createLogger({
   level: env.logLevel,
   format: winston.format.combine(winston.format.timestamp(), winston.format.json()),
   transports: [
-    new winston.transports.File({ filename: LOG_FILE }),
+    // Size-based rotation without new dependencies: 5MB per file, 5 files
+    // retained. Prevents unbounded growth of the operational log.
+    new winston.transports.File({ filename: LOG_FILE, maxsize: 5 * 1024 * 1024, maxFiles: 5 }),
     // Console carries errors only, so routine traffic stays in the file.
     new winston.transports.Console({ level: 'error' }),
   ],
@@ -64,4 +73,24 @@ function logError({ method, route, statusCode, code, message, stack, userId }) {
   );
 }
 
-module.exports = { logger, sanitize, logRequest, logError, LOG_FILE };
+// Warn-level 4xx observability (no bodies/headers/tokens — sanitized like
+// errors). Gives brute-force/enumeration signals a queryable home without
+// changing any API response.
+function logWarn({ method, route, statusCode, code, message, userId }) {
+  logger.warn(
+    'warn',
+    sanitize({ method, route, statusCode, code, message: message || 'Request rejected', userId })
+  );
+}
+
+// Admin audit trail (append-only, file-based — no schema change): who did
+// what to which record. Passwords/tokens are never passed here; sanitize
+// still guards the detail object.
+function logAudit({ actorId, action, target, detail }) {
+  logger.info(
+    'audit',
+    sanitize({ actorId, action, target, detail })
+  );
+}
+
+module.exports = { logger, sanitize, logRequest, logError, logWarn, logAudit, LOG_FILE };

@@ -1,7 +1,6 @@
 'use strict';
 
-// Test-database setup (run automatically as `npm test`'s pretest step, or via
-// `npm run test:setup`):
+// Test-database setup (run explicitly via `npm run test:setup`):
 //   1. Connects to the MySQL server (no database selected).
 //   2. Creates the dedicated test database if missing (name must contain
 //      "test" — anything else aborts instead of touching real data).

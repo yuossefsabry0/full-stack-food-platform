@@ -7,18 +7,30 @@ function validate(schema) {
   return (req, res, next) => {
     const result = schema.safeParse(req.body);
     if (!result.success) {
-      return validationError(res, result.error);
+      return validationError(req, res, result.error);
     }
     req.body = result.data;
     return next();
   };
 }
 
-function validationError(res, zodError) {
+function validationError(req, res, zodError) {
   const errors = zodError.issues.map((issue) => ({
     field: issue.path.join('.') || 'body',
     message: issue.message,
   }));
+  try {
+    const { logWarn } = require('../utils/logger');
+    logWarn({
+      method: req.method,
+      route: req.path,
+      statusCode: 400,
+      code: 'VALIDATION_ERROR',
+      message: 'Validation failed',
+    });
+  } catch {
+    // logging must never break validation responses
+  }
   return error(res, {
     message: 'Validation failed',
     code: 'VALIDATION_ERROR',
@@ -33,7 +45,7 @@ function validateQuery(schema) {
   return (req, res, next) => {
     const result = schema.safeParse(req.query);
     if (!result.success) {
-      return validationError(res, result.error);
+      return validationError(req, res, result.error);
     }
     req.validatedQuery = result.data;
     return next();
@@ -45,7 +57,7 @@ function validateParams(schema) {
   return (req, res, next) => {
     const result = schema.safeParse(req.params);
     if (!result.success) {
-      return validationError(res, result.error);
+      return validationError(req, res, result.error);
     }
     req.validatedParams = result.data;
     return next();

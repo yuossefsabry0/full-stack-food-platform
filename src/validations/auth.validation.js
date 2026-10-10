@@ -5,6 +5,15 @@ const { z } = require('zod');
 // Validation foundation: registration + login (Task 1),
 // refresh token + forgot password / OTP / new password (Task 2).
 
+// Shared new-password policy: length + at least one letter and one number.
+// Login keeps a lenient shape so pre-existing weaker passwords can still
+// attempt authentication (rejected with 401, not 400).
+const newPasswordSchema = z
+  .string()
+  .min(8, 'Password must be at least 8 characters')
+  .max(128)
+  .regex(/^(?=.*[A-Za-z])(?=.*\d).+$/, 'Password must contain at least one letter and one number');
+
 const registerSchema = z.object({
   name: z.string().trim().min(2, 'Name must be at least 2 characters').max(120),
   username: z
@@ -14,7 +23,7 @@ const registerSchema = z.object({
     .max(60)
     .regex(/^[a-zA-Z0-9._-]+$/, 'Username may contain letters, numbers, dot, underscore, hyphen'),
   email: z.string().trim().toLowerCase().email('Invalid email address').max(190),
-  password: z.string().min(8, 'Password must be at least 8 characters').max(128),
+  password: newPasswordSchema,
   // NOTE: no `role` field. Public registration always creates BASIC.
 }).strict();
 
@@ -44,7 +53,7 @@ const resetPasswordSchema = z
   .object({
     email: z.string().trim().toLowerCase().email('Invalid email address').max(190),
     resetToken: z.string().trim().min(1, 'Reset token is required').max(512),
-    password: z.string().min(8, 'Password must be at least 8 characters').max(128),
+    password: newPasswordSchema,
     confirmPassword: z.string().min(1, 'Password confirmation is required').max(128),
   })
   .strict()
@@ -54,6 +63,7 @@ const resetPasswordSchema = z
   });
 
 module.exports = {
+  newPasswordSchema,
   registerSchema,
   loginSchema,
   refreshSchema,

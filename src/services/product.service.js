@@ -34,7 +34,40 @@ function toProductDetails(product) {
   };
 }
 
+async function listMenuFulltext({ page, limit, search }) {
+  // Guarded FULLTEXT path: only when USE_FULLTEXT_SEARCH is "true". Requires
+  // a FULLTEXT(name) index; without it MySQL errors and the caller falls
+  // back to LIKE. Parameterized (no interpolation) to avoid injection.
+  const offset = (page - 1) * limit;
+  const rows = await prisma.$queryRawUnsafe(
+    'SELECT `id`, `name`, `description`, `price`, `imageUrl`, `isActive` FROM `products` ' +
+      'WHERE `isActive` = 1 AND MATCH(`name`) AGAINST (? IN NATURAL LANGUAGE MODE) ' +
+      'ORDER BY `id` ASC LIMIT ? OFFSET ?',
+    search,
+    limit,
+    offset
+  );
+  const counted = await prisma.$queryRawUnsafe(
+    'SELECT COUNT(*) AS `value` FROM `products` ' +
+      'WHERE `isActive` = 1 AND MATCH(`name`) AGAINST (? IN NATURAL LANGUAGE MODE)',
+    search
+  );
+  const total = Number((counted && counted[0] && counted[0].value) || 0);
+  return {
+    items: rows.map(toMenuItem),
+    meta: { page, limit, total, totalPages: Math.ceil(total / limit) },
+  };
+}
+
 async function listMenu({ page, limit, search }) {
+  // Opt-in fast path with silent LIKE fallback (no behavior change by default).
+  if (search && process.env.USE_FULLTEXT_SEARCH === 'true') {
+    try {
+      return await listMenuFulltext({ page, limit, search });
+    } catch {
+      // index absent or query failed: fall through to LIKE below
+    }
+  }
   const where = { isActive: true };
   if (search) {
     where.name = { contains: search };

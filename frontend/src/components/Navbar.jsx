@@ -3,11 +3,11 @@ import { NavLink } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext.jsx';
 import styles from './Navbar.module.css';
 
-// Top navbar: authenticated BASIC variant (Home, Menu, Cart, Orders, Logout)
-// plus a guest-facing variant (Home, Menu, Login, Sign Up) shown only on the
-// public Home/Menu routes when the visitor is unauthenticated. Rendered
-// exclusively inside BasicLayout, so it never appears on CHEF / DELIVERY /
-// Admin / Login / Register / password-recovery pages.
+// Top bar: authenticated BASIC variant (Home, Menu, Cart, Orders, Logout)
+// plus a guest-facing variant (Home, Menu, Login, Sign Up) when the visitor
+// is unauthenticated. Rendered only inside AuthLayout (Login / Register /
+// Forgot-password pages), so it never appears alongside the bottom taskbar
+// or on CHEF / DELIVERY / Admin pages.
 export default function Navbar() {
   const { isAuthenticated, logout } = useAuth();
   const linkClass = ({ isActive }) => (isActive ? `${styles.link} ${styles.active}` : styles.link);

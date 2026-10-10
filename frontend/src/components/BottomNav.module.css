@@ -1,0 +1,72 @@
+/* Floating bottom taskbar (dark pill, slightly above the viewport edge).
+ * Concept only from the reference image: floating pill, icon + label items,
+ * active item highlighted. All destinations mirror the previous top bar
+ * (BASIC: Home/Menu/Cart/Orders/Logout; guest: Home/Menu/Login/Sign Up). */
+
+.wrap {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 18px;
+  display: flex;
+  justify-content: center;
+  padding: 0 16px;
+  z-index: 60;
+  pointer-events: none;
+}
+
+.bar {
+  pointer-events: auto;
+  display: flex;
+  align-items: stretch;
+  gap: 4px;
+  background: rgba(17, 18, 26, 0.96);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 22px;
+  padding: 8px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35);
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+.item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  min-width: 68px;
+  padding: 8px 14px;
+  border-radius: 14px;
+  border: 0;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 12px;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  font-family: inherit;
+  white-space: nowrap;
+}
+
+.item:hover {
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.08);
+  text-decoration: none;
+}
+
+.item:focus-visible {
+  outline: 2px solid #ffffff;
+  outline-offset: 2px;
+}
+
+.active {
+  background: rgba(255, 255, 255, 0.14);
+  color: #ffffff;
+}
+
+.icon {
+  width: 20px;
+  height: 20px;
+  display: block;
+}

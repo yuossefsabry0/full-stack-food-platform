@@ -5,7 +5,7 @@ const authController = require('../controllers/auth.controller');
 const passwordResetController = require('../controllers/passwordReset.controller');
 const validate = require('../middlewares/validate.middleware');
 const { requireAuth } = require('../middlewares/auth.middleware');
-const { rateLimit, emailKey, ipKey } = require('../middlewares/rateLimit.middleware');
+const { rateLimit, emailKey, ipKey, loginKey } = require('../middlewares/rateLimit.middleware');
 const env = require('../config/env');
 const {
   registerSchema,
@@ -20,10 +20,12 @@ const router = express.Router();
 
 // rate limits for the sensitive public auth endpoints (proxy-aware:
 // keys derive from req.ip, which honors the TRUST_PROXY setting).
+// Login is keyed by IP + username so distributed guessing against one
+// account is throttled per account without merging unrelated users.
 const loginLimiter = rateLimit({
   windowMs: env.rateLoginWindowMs,
   max: env.rateLoginMax,
-  keyGenerator: ipKey('login'),
+  keyGenerator: loginKey('login'),
   message: 'Too many login attempts. Try again later.',
   code: 'RATE_LIMITED',
 });

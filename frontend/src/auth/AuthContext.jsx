@@ -16,10 +16,12 @@ function readStoredAuth() {
   }
 }
 
-// Guest-safety check for the navbar: a stored access token that is already
-// expired must not count as logged in, otherwise "Log Out" would show on
-// Home for a visitor whose session is no longer valid. Non-JWT values fall
-// back to the existing presence check so valid sessions are unaffected.
+// UX-only hint for the navbar: a stored access token that is already expired
+// must not count as logged in, otherwise "Log Out" would show on Home for a
+// visitor whose session is no longer valid. This is NOT a security boundary —
+// the backend (requireAuth/requireRole) is the sole authority; a crafted
+// localStorage value can only affect which shell renders, never API access.
+// Non-JWT values fall back to the existing presence check.
 function isStoredSessionValid(accessToken, user) {
   if (!accessToken || !user) return false;
   try {
@@ -40,6 +42,32 @@ function isStoredSessionValid(accessToken, user) {
 export function AuthProvider({ children }) {
   const [auth, setAuth] = useState(readStoredAuth);
   const navigate = useNavigate();
+
+  // Keep React state in sync when apiFetch silently rotates the pair after a
+  // 401 (single-flight refresh in api/client.js). Without this, API calls
+  // would succeed with the new token while the navbar still showed guest.
+  React.useEffect(() => {
+    const onTokensUpdated = (event) => {
+      const detail = (event && event.detail) || {};
+      setAuth((prev) => ({
+        accessToken: detail.accessToken !== undefined ? detail.accessToken || '' : prev.accessToken,
+        refreshToken: detail.refreshToken !== undefined ? detail.refreshToken || '' : prev.refreshToken,
+        user: detail.user !== undefined ? detail.user || null : prev.user,
+      }));
+    };
+    try {
+      window.addEventListener('fp:tokens-updated', onTokensUpdated);
+    } catch {
+      // non-browser environment: state stays as initially read
+    }
+    return () => {
+      try {
+        window.removeEventListener('fp:tokens-updated', onTokensUpdated);
+      } catch {
+        // ignore teardown failures
+      }
+    };
+  }, []);
 
   const login = useCallback(async (username, password) => {
     const res = await api.login({ username, password });

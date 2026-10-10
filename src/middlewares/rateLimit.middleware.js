@@ -22,9 +22,24 @@ if (cleanupTimer.unref) cleanupTimer.unref();
 // in which case behavior stays exactly the in-memory limiter below.
 let redisClient = null;
 let redisUnavailable = false;
+let redisRetryAfter = 0;
+const REDIS_RETRY_MS = 30 * 1000;
+
+function noteRedisFailure() {
+  // Time-bounded fallback: a transient blip degrades to in-memory for 30s,
+  // then the next request re-probes Redis instead of staying degraded until
+  // restart.
+  redisUnavailable = true;
+  redisRetryAfter = Date.now() + REDIS_RETRY_MS;
+}
 
 function getRedisClient() {
-  if (redisClient || redisUnavailable) return redisClient;
+  if (redisUnavailable) {
+    if (Date.now() < redisRetryAfter) return null;
+    redisUnavailable = false;
+    redisRetryAfter = 0;
+  }
+  if (redisClient) return redisClient;
   // Read live so toggling REDIS_URL takes effect without a restart in
   // tests; env.redisUrl (src/config/env.js) mirrors the same variable.
   const redisUrl = process.env.REDIS_URL || '';
@@ -37,15 +52,15 @@ function getRedisClient() {
     client.on('error', (err) => {
       // Runtime failure: fall back to the in-memory store and keep serving
       // requests. The client keeps its normal reconnect behavior in the
-      // background; no per-request reconnect logic is attempted.
-      redisUnavailable = true;
+      // background; requests re-probe after REDIS_RETRY_MS.
+      noteRedisFailure();
       // eslint-disable-next-line no-console
       console.error('Rate limiter Redis error, falling back to in-memory store:', err && err.message);
     });
     redisClient = client;
     return redisClient;
   } catch (err) {
-    redisUnavailable = true;
+    noteRedisFailure();
     // eslint-disable-next-line no-console
     console.error('Rate limiter Redis init failed, using in-memory store:', err && err.message);
     return null;
@@ -70,9 +85,21 @@ function redisCheck(client, key, windowMs, max) {
   });
 }
 
-function tooMany(res, retryAfterSec, message, code) {
+function tooMany(req, res, retryAfterSec, message, code) {
   res.set('Retry-After', String(retryAfterSec));
   const { error } = require('../utils/response');
+  try {
+    const { logWarn } = require('../utils/logger');
+    logWarn({
+      method: req.method,
+      route: req.path,
+      statusCode: 429,
+      code,
+      message,
+    });
+  } catch {
+    // logging must never break rate-limit responses
+  }
   return error(res, {
     message,
     code,
@@ -94,7 +121,7 @@ function memoryCheck({ windowMs, max, keyGenerator, message, code }, req, res, n
 
   if (bucket.count > max) {
     const retryAfterSec = Math.max(1, Math.ceil((bucket.resetTime - now) / 1000));
-    return tooMany(res, retryAfterSec, message, code);
+    return tooMany(req, res, retryAfterSec, message, code);
   }
   return next();
 }
@@ -110,14 +137,14 @@ function rateLimit({ windowMs, max, keyGenerator, message = 'Too many requests',
     return redisCheck(client, key, windowMs, max).then(
       ({ allowed, retryAfterSec }) => {
         if (!allowed) {
-          return tooMany(res, retryAfterSec, message, code);
+          return tooMany(req, res, retryAfterSec, message, code);
         }
         return next();
       },
       (err) => {
         // Runtime Redis failure: fall back to the in-memory store, never
-        // crash or block the request.
-        redisUnavailable = true;
+        // crash or block the request. Re-probe after REDIS_RETRY_MS.
+        noteRedisFailure();
         // eslint-disable-next-line no-console
         console.error('Rate limiter Redis command failed, falling back to in-memory store:', err && err.message);
         return memoryCheck(options, req, res, next);
@@ -138,7 +165,18 @@ function ipKey(prefix) {
   return (req) => `${prefix}:${req.ip || 'unknown'}`;
 }
 
-module.exports = { rateLimit, emailKey, ipKey };
+// Per-account login key: IP + username. Keeps the existing per-IP budget
+// shape while also isolating targeted guessing against one username from
+// unrelated logins behind the same NAT/proxy IP.
+function loginKey(prefix) {
+  return (req) => {
+    const username =
+      req.body && typeof req.body.username === 'string' ? req.body.username.trim().toLowerCase() : '';
+    return `${prefix}:${req.ip || 'unknown'}:${username}`;
+  };
+}
+
+module.exports = { rateLimit, emailKey, ipKey, loginKey };
 
 // For testing / future extension.
 module.exports._buckets = buckets;
@@ -149,4 +187,5 @@ module.exports._resetRedisForTests = () => {
   }
   redisClient = null;
   redisUnavailable = false;
+  redisRetryAfter = 0;
 };

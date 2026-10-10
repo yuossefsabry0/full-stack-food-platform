@@ -50,11 +50,13 @@ async function getCart(userId) {
 }
 
 async function getOrCreateCart(userId) {
-  let cart = await prisma.cart.findUnique({ where: { userId } });
-  if (!cart) {
-    cart = await prisma.cart.create({ data: { userId } });
-  }
-  return cart;
+  // Atomic upsert: concurrent first-adds for the same user converge on one
+  // row instead of racing findUnique/create into a P2002 500.
+  return prisma.cart.upsert({
+    where: { userId },
+    update: {},
+    create: { userId },
+  });
 }
 
 async function findAvailableProduct(productId) {
@@ -147,27 +149,44 @@ async function findOwnCartItem(userId, productId) {
 async function updateCartItem(userId, productId, change) {
   const { cart, item } = await findOwnCartItem(userId, productId);
   if (change.quantity !== undefined) {
-    await prisma.cartItem.update({ where: { id: item.id }, data: { quantity: change.quantity } });
-  } else if (change.action === 'increase') {
-    if (item.quantity + 1 > MAX_QUANTITY) {
-      const err = new Error(`Quantity must be at most ${MAX_QUANTITY}`);
-      err.statusCode = 400;
-      err.code = 'QUANTITY_LIMIT_EXCEEDED';
+    // Idempotent conditional set: a concurrently deleted line yields 0
+    // instead of a P2025 500, mapped back to the standard 404 below.
+    const updated = await prisma.cartItem.updateMany({
+      where: { id: item.id },
+      data: { quantity: change.quantity },
+    });
+    if (updated.count !== 1) {
+      const err = new Error('Product is not in the cart');
+      err.statusCode = 404;
+      err.code = 'CART_ITEM_NOT_FOUND';
       throw err;
     }
-    await prisma.cartItem.update({
-      where: { id: item.id },
+  } else if (change.action === 'increase') {
+    // Atomic cap: only increments while staying within MAX_QUANTITY.
+    const updated = await prisma.cartItem.updateMany({
+      where: { id: item.id, quantity: { lt: MAX_QUANTITY } },
       data: { quantity: { increment: 1 } },
     });
+    if (updated.count !== 1) {
+      // Either concurrently deleted (gone) or already at the cap.
+      const current = await prisma.cartItem.findUnique({ where: { id: item.id } });
+      if (!current) {
+        const err = new Error('Product is not in the cart');
+        err.statusCode = 404;
+        err.code = 'CART_ITEM_NOT_FOUND';
+        throw err;
+      }
+      throw quantityLimitError();
+    }
   } else {
-    // decrease: step down, removing the item when it would reach zero.
-    if (item.quantity <= 1) {
-      await prisma.cartItem.delete({ where: { id: item.id } });
-    } else {
-      await prisma.cartItem.update({
-        where: { id: item.id },
-        data: { quantity: { decrement: 1 } },
-      });
+    // decrease: atomic step down while quantity > 1, otherwise remove the
+    // line when it would reach zero. Both paths are idempotent.
+    const stepped = await prisma.cartItem.updateMany({
+      where: { id: item.id, quantity: { gt: 1 } },
+      data: { quantity: { decrement: 1 } },
+    });
+    if (stepped.count !== 1) {
+      await prisma.cartItem.deleteMany({ where: { id: item.id, quantity: { lte: 1 } } });
     }
   }
   const items = await fetchCartItems(cart.id);
@@ -176,7 +195,9 @@ async function updateCartItem(userId, productId, change) {
 
 async function removeFromCart(userId, productId) {
   const { cart, item } = await findOwnCartItem(userId, productId);
-  await prisma.cartItem.delete({ where: { id: item.id } });
+  // Idempotent delete: a concurrently removed line is already gone, which is
+  // the desired end state (no P2025 500).
+  await prisma.cartItem.deleteMany({ where: { id: item.id } });
   const items = await fetchCartItems(cart.id);
   return toCartShape(cart, items);
 }

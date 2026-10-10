@@ -8,6 +8,66 @@ function getAccessToken() {
   return localStorage.getItem('fp_accessToken') || '';
 }
 
+function getRefreshToken() {
+  try {
+    return localStorage.getItem('fp_refreshToken') || '';
+  } catch {
+    return '';
+  }
+}
+
+function setStoredTokens({ accessToken, refreshToken, user }) {
+  try {
+    if (accessToken !== undefined) localStorage.setItem('fp_accessToken', accessToken || '');
+    if (refreshToken !== undefined) localStorage.setItem('fp_refreshToken', refreshToken || '');
+    if (user !== undefined) localStorage.setItem('fp_user', JSON.stringify(user || null));
+  } catch {
+    // storage unavailable (private mode): API retry still uses the response below
+  }
+  try {
+    if (typeof window !== 'undefined' && typeof window.dispatchEvent === 'function') {
+      window.dispatchEvent(
+        new CustomEvent('fp:tokens-updated', {
+          detail: { accessToken, refreshToken, user },
+        })
+      );
+    }
+  } catch {
+    // event dispatch is best-effort; AuthContext re-reads storage on navigation
+  }
+}
+
+// Single-flight refresh: concurrent 401s share one /auth/refresh call.
+let refreshPromise = null;
+
+async function tryRefreshTokens() {
+  const refreshToken = getRefreshToken();
+  if (!refreshToken) return null;
+  if (!refreshPromise) {
+    refreshPromise = (async () => {
+      const res = await fetch(`${BASE_URL}/auth/refresh`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ refreshToken }),
+      });
+      let payload = null;
+      try {
+        payload = await res.json();
+      } catch {
+        payload = null;
+      }
+      if (!res.ok) return null;
+      return (payload && payload.data) || null;
+    })().finally(() => {
+      refreshPromise = null;
+    });
+  }
+  const data = await refreshPromise;
+  if (!data || !data.accessToken) return null;
+  setStoredTokens({ accessToken: data.accessToken, refreshToken: data.refreshToken, user: data.user });
+  return data;
+}
+
 // Guest browse routes where an auth/refresh failure must NOT force a Login
 // redirect — the visitor simply continues as a guest. Every other route keeps
 // the existing forced-redirect-on-failed-refresh behavior.
@@ -33,7 +93,7 @@ function handleUnauthorizedRedirect(status) {
   }
 }
 
-export async function apiFetch(path, { method = 'GET', body, auth = false, skipAuthRedirect = false } = {}) {
+export async function apiFetch(path, { method = 'GET', body, auth = false, skipAuthRedirect = false, _retried = false } = {}) {
   const headers = { 'Content-Type': 'application/json' };
   if (auth) {
     const token = getAccessToken();
@@ -51,6 +111,23 @@ export async function apiFetch(path, { method = 'GET', body, auth = false, skipA
     payload = null;
   }
   if (!res.ok) {
+    // One silent refresh-and-retry for expired access tokens: same request is
+    // replayed once with the rotated pair. Never loops (guarded by _retried),
+    // never runs for the refresh call itself or when the caller opted out via
+    // skipAuthRedirect (guest-cap fetch keeps its existing fallback).
+    if (
+      res.status === 401 &&
+      auth &&
+      !_retried &&
+      !skipAuthRedirect &&
+      !path.startsWith('/auth/refresh') &&
+      !path.startsWith('/auth/login')
+    ) {
+      const refreshed = await tryRefreshTokens().catch(() => null);
+      if (refreshed && refreshed.accessToken) {
+        return apiFetch(path, { method, body, auth, skipAuthRedirect, _retried: true });
+      }
+    }
     const message = (payload && (payload.message || payload.error)) || `Request failed (${res.status})`;
     const err = new Error(message);
     err.status = res.status;
@@ -160,4 +237,4 @@ export const api = {
   adminAnalytics: () => apiFetch('/admin/analytics', { auth: true }),
 };
 
-export { BASE_URL };
+export { BASE_URL, getAccessToken, getRefreshToken, setStoredTokens };

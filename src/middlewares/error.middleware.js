@@ -1,7 +1,7 @@
 'use strict';
 
 const { error } = require('../utils/response');
-const { logError } = require('../utils/logger');
+const { logError, logWarn } = require('../utils/logger');
 
 // Request context for 500 logs only: method + path (never the query
 // string), the user id when req.user exists. The project has no request
@@ -31,6 +31,17 @@ function errorHandler(err, req, res, next) {
       statusCode: 413,
     });
   }
+  // Malformed JSON is a client error, not a server crash. express.json raises
+  // a SyntaxError with status 400; map it to the validation envelope.
+  if (err && (err.type === 'entity.parse.failed' || (err instanceof SyntaxError && err.status === 400))) {
+    logError({ method: req.method, route: req.path, statusCode: 400, code: 'INVALID_JSON', message: 'Invalid JSON body' });
+    return error(res, {
+      message: 'Invalid JSON body',
+      code: 'VALIDATION_ERROR',
+      errors: [{ field: 'body', message: 'Request body must be valid JSON' }],
+      statusCode: 400,
+    });
+  }
   logError({ ...errorContext(req, err), statusCode: 500, code: 'INTERNAL_ERROR', message: err.message });
   return error(res, {
     message: 'Internal server error',
@@ -40,6 +51,13 @@ function errorHandler(err, req, res, next) {
 }
 
 function notFoundHandler(req, res) {
+  logWarn({
+    method: req.method,
+    route: req.path,
+    statusCode: 404,
+    code: 'NOT_FOUND',
+    message: `Route not found: ${req.method} ${req.originalUrl}`,
+  });
   return error(res, {
     message: `Route not found: ${req.method} ${req.originalUrl}`,
     code: 'NOT_FOUND',

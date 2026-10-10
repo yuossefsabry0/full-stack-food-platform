@@ -146,6 +146,12 @@ model Product {
   orderItems OrderItem[]
 
   @@index([isActive])
+  // Menu search is a partial name match; the name index supports
+  // prefix-ordered scans and admin lookups. Leading-wildcard LIKE still
+  // scans (see README); a future FULLTEXT(name) + MATCH..AGAINST change
+  // is the catalog-growth path. Case-insensitivity relies on the
+  // utf8mb4_unicode_ci collation applied at database creation.
+  @@index([name])
   @@map("products")
 }
 
@@ -211,6 +217,9 @@ model Order {
   @@index([status])
   @@index([chefId])
   @@index([deliveryId])
+  // Admin date-range filters and createdAt/total sorting.
+  @@index([createdAt])
+  @@index([total])
   @@map("orders")
 }
 

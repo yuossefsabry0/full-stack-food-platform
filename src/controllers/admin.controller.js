@@ -73,10 +73,22 @@ async function products(req, res, next) {
   }
 }
 
+// Best-effort audit trail: file-logged only, never breaks the response and
+// never carries passwords or tokens.
+function audit(req, action, target) {
+  try {
+    const { logAudit } = require('../utils/logger');
+    logAudit({ actorId: req.user && req.user.id, action, target });
+  } catch {
+    // audit must never break admin responses
+  }
+}
+
 // POST /api/admin/products — add a product.
 async function addProduct(req, res, next) {
   try {
     const product = await createProduct(req.body);
+    audit(req, 'product.create', { id: product.id, name: product.name });
     return success(res, {
       message: 'Product created',
       data: { product },
@@ -92,6 +104,7 @@ async function addProduct(req, res, next) {
 async function editProduct(req, res, next) {
   try {
     const product = await updateProduct(req.validatedParams.id, req.body);
+    audit(req, 'product.update', { id: product.id });
     return success(res, {
       message: 'Product updated',
       data: { product },
@@ -126,6 +139,7 @@ async function staff(req, res, next) {
 async function addStaff(req, res, next) {
   try {
     const staff = await createStaff(req.body);
+    audit(req, 'staff.create', { id: staff.id, role: staff.role });
     return success(res, {
       message: `${req.body.role} account created`,
       data: { staff },
@@ -148,6 +162,7 @@ async function addStaff(req, res, next) {
 async function editStaff(req, res, next) {
   try {
     const staff = await updateStaff(req.user.id, req.validatedParams.id, req.body);
+    audit(req, 'staff.update', { id: staff.id });
     return success(res, {
       message: 'Staff account updated',
       data: { staff },

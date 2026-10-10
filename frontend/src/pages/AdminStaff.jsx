@@ -128,6 +128,10 @@ export default function AdminStaff() {
             </div>
             <div style={{ marginTop: 8, borderTop: '1px solid #e5e7eb', paddingTop: 8, display: 'flex', flexDirection: 'column', gap: 4, fontSize: 14 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}>
+                <span className="muted">Internal ID (for edits)</span>
+                <strong>{s.id ?? '—'}</strong>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}>
                 <span className="muted">User code</span>
                 <strong>{s.userCode || '—'}</strong>
               </div>
@@ -140,7 +144,7 @@ export default function AdminStaff() {
                 <strong>{s.createdAt ? new Date(s.createdAt).toLocaleString() : '—'}</strong>
               </div>
             </div>
-            {s.id && <button className="btn" style={{ marginTop: 10 }} onClick={() => toggle(s)}>Toggle active</button>}
+            {s.id && <button className="btn" style={{ marginTop: 10 }} onClick={() => toggle(s)} aria-label={`Toggle active for ${s.username}`}>Toggle active</button>}
           </div>
         ))}
         {staff.length === 0 && !error && <p className="muted">No staff found.</p>}

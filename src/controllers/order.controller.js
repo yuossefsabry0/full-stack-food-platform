@@ -22,9 +22,12 @@ function serviceError(res, err) {
 
 // POST /api/orders/checkout — Delivery Address + Order creation.
 // The address body is fully Zod-validated; no order is confirmed without it.
+// Optional Idempotency-Key header replays the original order for the same
+// user instead of creating a duplicate (ignored when absent/invalid).
 async function create(req, res, next) {
   try {
-    const order = await checkout(req.user.id, req.body);
+    const idempotencyKey = req.headers && req.headers['idempotency-key'];
+    const order = await checkout(req.user.id, req.body, { idempotencyKey });
     return success(res, {
       message: 'Order confirmed',
       data: { order },

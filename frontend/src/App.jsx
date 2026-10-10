@@ -1,6 +1,6 @@
 import React from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
-import { BasicLayout, PlainLayout } from './components/Layouts.jsx';
+import { AuthLayout, BasicLayout, PlainLayout } from './components/Layouts.jsx';
 import { RequireAuth, RequireBasicOrGuest, RequireRole } from './components/ProtectedRoute.jsx';
 
 import Login from './pages/Login.jsx';
@@ -36,11 +36,15 @@ function RoleIndex() {
 export default function App() {
   return (
     <Routes>
-      {/* Unauthenticated */}
-      <Route element={<PlainLayout />}>
+      {/* Auth entry pages keep the top bar (no bottom taskbar) */}
+      <Route element={<AuthLayout />}>
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
+      </Route>
+
+      {/* Unauthenticated */}
+      <Route element={<PlainLayout />}>
         <Route path="/verify-otp" element={<VerifyOtp />} />
         <Route path="/reset-password" element={<ResetPassword />} />
       </Route>

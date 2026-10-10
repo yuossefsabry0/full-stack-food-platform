@@ -6,7 +6,7 @@ const env = require('../config/env');
 const { hashPassword, comparePassword } = require('../utils/password');
 const { sha256Hex } = require('./token.service');
 const { sendOtpEmail } = require('./mailer.service');
-const { revokeRefreshTokensForUser, toPublicUser } = require('./auth.service');
+const { revokeAllTokensForUser, toPublicUser } = require('./auth.service');
 
 function generateOtp() {
   return String(crypto.randomInt(0, 1000000)).padStart(6, '0');
@@ -71,11 +71,18 @@ async function requestPasswordReset(email) {
     },
   });
 
-  await sendOtpEmail({
+  const delivery = await sendOtpEmail({
     toEmail: user.email,
     otp,
     expiresInMinutes: env.otpExpireMinutes,
   });
+  // Delivery failures are operational (logged in the mailer) but never
+  // surfaced to the caller: the response stays generic so account existence
+  // cannot be probed via send status.
+  if (!delivery.delivered) {
+    // eslint-disable-next-line no-console
+    console.error(`OTP email undelivered for user id ${user.id} (channel: ${delivery.channel}).`);
+  }
 
   return {
     message: GENERIC_FORGOT_MESSAGE,
@@ -192,9 +199,10 @@ async function resetPasswordWithToken(email, resetToken, newPassword) {
     }),
   ]);
 
-  // Password changed: revoke all active Refresh Tokens so old sessions
-  // cannot mint new Access Tokens. The user logs in again with the new password.
-  await revokeRefreshTokensForUser(user.id);
+  // Password changed: revoke all active tokens (ACCESS + REFRESH) so a
+  // previously issued access token cannot survive the reset until its JWT
+  // expiry. The user logs in again with the new password.
+  await revokeAllTokensForUser(user.id);
 
   const updated = await prisma.user.findUnique({ where: { id: user.id } });
   return toPublicUser(updated);

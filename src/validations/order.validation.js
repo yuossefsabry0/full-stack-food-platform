@@ -13,7 +13,12 @@ const deliveryAddressSchema = z.object({
   buildingNumber: z.string().trim().min(1, 'Building number is required').max(40),
   apartmentNumber: z.string().trim().min(1, 'Apartment number is required').max(40),
   streetName: z.string().trim().min(2, 'Street name is required').max(150),
-  phoneNumber: z.string().trim().min(6, 'Phone number is required').max(40),
+  phoneNumber: z
+    .string()
+    .trim()
+    .min(6, 'Phone number is required')
+    .max(40)
+    .regex(/^[+\d][\d\s\-().+]*$/, 'Invalid phone number'),
 }).strict();
 
 // Confirming an order = submitting the delivery address. Same schema.

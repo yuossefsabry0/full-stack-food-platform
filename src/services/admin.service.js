@@ -25,10 +25,13 @@ function fail(statusCode, code, message) {
   return err;
 }
 
-// Users (customers): name + username + public code + email ONLY 
+// Users (customers): internal id (needed for admin order filters/staff
+// edits) + name + username + public code + email. Additive only: existing
+// keys are unchanged.
 
 function toCustomerShape(user) {
   return {
+    id: user.id,
     name: user.name,
     username: user.username,
     userCode: user.publicId,
@@ -42,7 +45,7 @@ async function listUsers({ page, limit, role }) {
     prisma.user.count({ where }),
     prisma.user.findMany({
       where,
-      select: { name: true, username: true, publicId: true, email: true },
+      select: { id: true, name: true, username: true, publicId: true, email: true },
       orderBy: { id: 'asc' },
       skip: (page - 1) * limit,
       take: limit,
@@ -171,6 +174,7 @@ async function listOrders({ page, limit, status, orderId, userId, deliveryId, ch
 
 function toStaffShape(user) {
   return {
+    id: user.id,
     userCode: user.publicId,
     name: user.name,
     username: user.username,
@@ -187,7 +191,7 @@ async function listStaff({ page, limit, role }) {
     prisma.user.count({ where }),
     prisma.user.findMany({
       where,
-      select: { publicId: true, name: true, username: true, email: true, role: true, isActive: true, createdAt: true },
+      select: { id: true, publicId: true, name: true, username: true, email: true, role: true, isActive: true, createdAt: true },
       orderBy: { id: 'asc' },
       skip: (page - 1) * limit,
       take: limit,
@@ -225,13 +229,20 @@ async function createStaff({ name, username, email, password, role }) {
 
 async function updateStaff(adminUserId, staffId, changes) {
   const target = await prisma.user.findUnique({ where: { id: staffId } });
-  if (!target || (target.role !== 'CHEF' && target.role !== 'DELIVERY')) {
+  if (!target) {
     throw fail(404, 'STAFF_NOT_FOUND', 'Staff account not found');
   }
-  // Self-deactivation guard: triggers only when an admin edits their own
-  // account (staffId matches the acting admin's id) and sets isActive false.
-  if (changes.isActive === false && staffId === adminUserId) {
-    throw fail(400, 'CANNOT_DEACTIVATE_SELF', 'You cannot deactivate your own admin account');
+  // Self-deactivation guard is reachable: an admin editing their own ADMIN
+  // row with isActive false gets a 400 (not the staff 404). Other ADMIN rows
+  // remain untouchable here (404, same as before).
+  if (target.role === 'ADMIN') {
+    if (staffId === adminUserId && changes.isActive === false) {
+      throw fail(400, 'CANNOT_DEACTIVATE_SELF', 'You cannot deactivate your own admin account');
+    }
+    throw fail(404, 'STAFF_NOT_FOUND', 'Staff account not found');
+  }
+  if (target.role !== 'CHEF' && target.role !== 'DELIVERY') {
+    throw fail(404, 'STAFF_NOT_FOUND', 'Staff account not found');
   }
   const duplicateOr = [];
   if (changes.username) duplicateOr.push({ username: changes.username });

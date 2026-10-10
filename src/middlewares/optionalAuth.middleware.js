@@ -2,7 +2,7 @@
 
 const prisma = require('../config/database');
 const { error } = require('../utils/response');
-const { verifyAccessToken } = require('../services/token.service');
+const { verifyAccessToken, sha256Hex } = require('../services/token.service');
 
 // Optional authentication for public browse-only GET handlers (Home only).
 // Applied ONLY at the route level for GET /api/home — never globally.
@@ -31,6 +31,18 @@ async function optionalAuth(req, res, next) {
   }
 
   try {
+    // Same server-side revocation check as requireAuth: a logged-out or
+    // rotated access token must not count as authenticated here either.
+    const tokenRecord = await prisma.authToken.findUnique({
+      where: { tokenHash: sha256Hex(token) },
+    });
+    if (!tokenRecord || tokenRecord.revokedAt || tokenRecord.userId !== payload.sub) {
+      return error(res, {
+        message: 'Invalid or expired access token',
+        code: 'UNAUTHORIZED',
+        statusCode: 401,
+      });
+    }
     const user = await prisma.user.findUnique({ where: { id: payload.sub } });
     if (!user || !user.isActive) {
       return error(res, {

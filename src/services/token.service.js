@@ -31,7 +31,23 @@ function sha256Hex(value) {
   return crypto.createHash('sha256').update(value).digest('hex');
 }
 
-function accessTokenExpiryDate() {
+function expiryDateFromToken(token, fallbackMs) {
+  // Source of truth for the DB row: the signed token's own `exp` claim, so
+  // the stored expiresAt can never diverge from what the verifier enforces
+  // (jsonwebtoken accepts durations this parser does not, e.g. "3600").
+  try {
+    const decoded = jwt.decode(token);
+    if (decoded && typeof decoded.exp === 'number') {
+      return new Date(decoded.exp * 1000);
+    }
+  } catch {
+    // fall through to the configured-duration parser below
+  }
+  return new Date(Date.now() + fallbackMs);
+}
+
+function accessTokenExpiryDate(token) {
+  if (token) return expiryDateFromToken(token, 15 * 60 * 1000);
   return expiryDateFrom(env.jwtAccessExpiresIn, 15 * 60 * 1000);
 }
 
@@ -57,7 +73,8 @@ function verifyRefreshToken(token) {
   return payload;
 }
 
-function refreshTokenExpiryDate() {
+function refreshTokenExpiryDate(token) {
+  if (token) return expiryDateFromToken(token, 7 * 24 * 3600 * 1000);
   return expiryDateFrom(env.jwtRefreshExpiresIn, 7 * 24 * 3600 * 1000);
 }
 
@@ -81,4 +98,5 @@ module.exports = {
   sha256Hex,
   accessTokenExpiryDate,
   refreshTokenExpiryDate,
+  expiryDateFromToken,
 };

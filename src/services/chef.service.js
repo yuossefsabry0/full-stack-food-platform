@@ -21,26 +21,27 @@ async function listRequestOrders() {
 }
 
 async function prepareOrder(chefUserId, orderId) {
-  const order = await prisma.order.findUnique({
-    where: { id: orderId },
-    include: { items: { orderBy: { id: 'asc' } } },
-  });
+  const order = await prisma.order.findUnique({ where: { id: orderId } });
   if (!order) {
     const err = new Error('Order not found');
     err.statusCode = 404;
     err.code = 'ORDER_NOT_FOUND';
     throw err;
   }
-  if (order.status !== 'PENDING') {
+  // Atomic conditional claim: exactly one concurrent preparer can match this
+  // PENDING row; losers get the standard 409 instead of overwriting chefId.
+  const claimed = await prisma.order.updateMany({
+    where: { id: orderId, status: 'PENDING' },
+    data: { status: 'READY_FOR_DELIVERY', chefId: chefUserId, preparedAt: new Date() },
+  });
+  if (claimed.count !== 1) {
     const err = new Error('Only pending orders can be prepared');
     err.statusCode = 409;
     err.code = 'ORDER_NOT_PREPARABLE';
     throw err;
   }
-  // Single atomic step through the preparation stage to READY_FOR_DELIVERY.
-  const updated = await prisma.order.update({
-    where: { id: order.id },
-    data: { status: 'READY_FOR_DELIVERY', chefId: chefUserId, preparedAt: new Date() },
+  const updated = await prisma.order.findUnique({
+    where: { id: orderId },
     include: { items: { orderBy: { id: 'asc' } } },
   });
   return toChefOrderShape(updated, updated.items);

@@ -27,16 +27,35 @@ const adminUsersQuerySchema = adminPagination.extend({
 const adminProductsQuerySchema = adminPagination.extend({
   search: z.string().trim().min(1).max(100).optional(),
   isActive: z
-    .preprocess((v) => (v === undefined ? undefined : v === true || v === 'true'), z.boolean().optional())
+    .preprocess((v) => {
+      if (v === undefined) return undefined;
+      if (v === true || v === false) return v;
+      const s = String(v).trim().toLowerCase();
+      if (['true', '1', 'yes'].includes(s)) return true;
+      if (['false', '0', 'no'].includes(s)) return false;
+      return v;
+    }, z.boolean().optional())
     .optional(),
 });
+
+// Image URLs must be http(s) when provided (stored and rendered by clients).
+const imageUrlField = z
+  .string()
+  .trim()
+  .min(1)
+  .max(500)
+  .nullable()
+  .optional()
+  .refine((v) => v == null || /^https?:\/\/.+/i.test(v), {
+    message: 'Image URL must be a valid http(s) URL',
+  });
 
 // Add product: everything except the id; active by default.
 const createProductSchema = z.object({
   name: z.string().trim().min(2, 'Name must be at least 2 characters').max(150),
   description: z.string().trim().max(5000).nullable().optional(),
   price: z.number('Price must be a number').positive('Price must be positive').max(1000000),
-  imageUrl: z.string().trim().min(1).max(500).nullable().optional(),
+  imageUrl: imageUrlField,
   isActive: z.boolean().optional(),
 }).strict();
 
@@ -46,7 +65,7 @@ const updateProductSchema = z.object({
   name: z.string().trim().min(2, 'Name must be at least 2 characters').max(150).optional(),
   description: z.string().trim().max(5000).nullable().optional(),
   price: z.number('Price must be a number').positive('Price must be positive').max(1000000).optional(),
-  imageUrl: z.string().trim().min(1).max(500).nullable().optional(),
+  imageUrl: imageUrlField,
   isActive: z.boolean().optional(),
 }).strict().refine((d) => Object.keys(d).length > 0, { message: 'At least one field is required' });
 
@@ -66,6 +85,7 @@ const adminOrdersQuerySchema = adminPagination.extend({
 
 // Staff (CHEF / DELIVERY) creation form: name + email + username + password + role.
 // ADMIN is not selectable — rejected by the role enum itself.
+// Password follows the shared new-password policy (letter + number).
 const createStaffSchema = z.object({
   name: z.string().trim().min(2, 'Name must be at least 2 characters').max(120),
   username: z
@@ -75,7 +95,11 @@ const createStaffSchema = z.object({
     .max(60)
     .regex(/^[a-zA-Z0-9._-]+$/, 'Username may contain letters, numbers, dot, underscore, hyphen'),
   email: z.string().trim().toLowerCase().email('Invalid email address').max(190),
-  password: z.string().min(8, 'Password must be at least 8 characters').max(128),
+  password: z
+    .string()
+    .min(8, 'Password must be at least 8 characters')
+    .max(128)
+    .regex(/^(?=.*[A-Za-z])(?=.*\d).+$/, 'Password must contain at least one letter and one number'),
   role: z.enum(STAFF_ROLES),
 }).strict();
 

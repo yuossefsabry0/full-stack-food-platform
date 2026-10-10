@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../api/client.js';
+import sf from './Storefront.module.css';
 
 function unwrapList(res) {
   const data = res?.data;
@@ -10,9 +11,13 @@ function unwrapList(res) {
   return { items: [], meta: res?.meta };
 }
 
+const CHIPS = ['All', 'Pizza', 'Burger', 'Salad', 'Sushi', 'Dessert'];
+const TILES = ['#ffe4e6', '#fef3c7', '#dcfce7', '#e0e7ff', '#fce7f3', '#ffedd5'];
+
 export default function Menu() {
   const [items, setItems] = useState([]);
   const [search, setSearch] = useState('');
+  const [activeChip, setActiveChip] = useState('All');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
 
@@ -33,79 +38,77 @@ export default function Menu() {
     load();
   }, []);
 
+  function pickChip(chip) {
+    setActiveChip(chip);
+    const q = chip === 'All' ? '' : chip;
+    setSearch(q);
+    load(q);
+  }
+
   return (
-    <div className="page">
-      <h2>Menu</h2>
-      <form
-        onSubmit={(e) => {
-          e.preventDefault();
-          load(search);
-        }}
-        style={{ display: 'flex', gap: 8, marginBottom: 16 }}
-      >
-        <input
-          className="input"
-          placeholder="Search dishes…"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-        />
-        <button className="btn btn-primary" type="submit">Search</button>
-      </form>
+    <div className={sf.page}>
+      <span className={sf.pageLabel}>
+        <span className={sf.pageLabelDot} aria-hidden="true" />
+        Menu Page
+      </span>
+
+      <div className={sf.section} style={{ marginTop: 16 }}>
+        <h2 className={sf.sectionTitle} style={{ fontSize: 28, marginBottom: 12 }}>
+          What are you craving?
+        </h2>
+        <form
+          className={sf.searchBar}
+          onSubmit={(e) => {
+            e.preventDefault();
+            setActiveChip('All');
+            load(search);
+          }}
+          role="search"
+        >
+          <input
+            placeholder="Search dishes…"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            aria-label="Search dishes"
+            type="search"
+          />
+          <button className={sf.ctaPrimary} type="submit" aria-label="Search menu">
+            Search
+          </button>
+        </form>
+      </div>
+
+      <div className={sf.chips} role="group" aria-label="Category filters" style={{ marginTop: 16 }}>
+        {CHIPS.map((chip) => (
+          <button
+            key={chip}
+            type="button"
+            className={`${sf.chip} ${activeChip === chip ? sf.chipActive : ''}`}
+            aria-pressed={activeChip === chip}
+            onClick={() => pickChip(chip)}
+          >
+            {chip}
+          </button>
+        ))}
+      </div>
+
       {loading && <p className="muted">Loading menu…</p>}
-      {error && <p className="error">{error}</p>}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 16, alignItems: 'stretch' }}>
-        {items.map((p) => (
-          <Link key={p.id} to={`/products/${p.id}`} style={{ textDecoration: 'none', color: 'inherit', display: 'block', height: '100%' }}>
-            <div className="card" style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-              {p.imageUrl || p.image ? (
-                <div style={{ borderRadius: 8, overflow: 'hidden', width: '100%', aspectRatio: '4 / 3', background: '#f1f5f9', flexShrink: 0 }}>
-                  <img
-                    src={p.imageUrl || p.image}
-                    alt={p.name}
-                    loading="lazy"
-                    style={{ display: 'block', width: '100%', height: '100%', objectFit: 'cover' }}
-                  />
-                </div>
-              ) : (
-                <div style={{ borderRadius: 8, width: '100%', aspectRatio: '4 / 3', background: 'linear-gradient(135deg,#e0e7ff,#fef3c7)', flexShrink: 0 }} />
+      {error && <p className="error" role="alert">{error}</p>}
+      <div className={sf.grid}>
+        {items.map((p, i) => (
+          <Link key={p.id} to={`/products/${p.id}`} className={sf.dishCard}>
+            <div className={sf.dishTile} style={{ background: TILES[i % TILES.length] }}>
+              {(p.imageUrl || p.image) && (
+                <img src={p.imageUrl || p.image} alt={p.name} loading="lazy" />
               )}
-              <h3
-                style={{
-                  margin: '10px 0 4px',
-                  fontSize: 16,
-                  lineHeight: 1.35,
-                  minHeight: '2.7em',
-                  display: '-webkit-box',
-                  WebkitLineClamp: 2,
-                  WebkitBoxOrient: 'vertical',
-                  overflow: 'hidden',
-                }}
-              >
-                {p.name}
-              </h3>
-              <p
-                className="muted"
-                style={{
-                  margin: '0 0 4px',
-                  fontSize: 13,
-                  lineHeight: 1.45,
-                  minHeight: '2.9em',
-                  display: '-webkit-box',
-                  WebkitLineClamp: 2,
-                  WebkitBoxOrient: 'vertical',
-                  overflow: 'hidden',
-                }}
-              >
-                {p.description || ' '}
-              </p>
-              <p className="muted" style={{ margin: 'auto 0 0', paddingTop: 4, fontFamily: 'inherit', fontWeight: 700, color: '#1f2937' }}>${Number(p.price).toFixed(2)}</p>
-              <span
-                className="btn btn-primary"
-                aria-hidden="true"
-                style={{ display: 'block', width: '100%', textAlign: 'center', borderRadius: 8, padding: '10px 14px', fontWeight: 600, fontSize: 14, marginTop: 10 }}
-              >
-                View Details
-              </span>
+            </div>
+            <div className={sf.dishBody}>
+              <h3 className={sf.dishName}>{p.name}</h3>
+              <p className={sf.dishDesc}>{p.description || ' '}</p>
+              <div className={sf.dishFoot}>
+                <span className={sf.dishPrice}>${Number(p.price).toFixed(2)}</span>
+                <span className={sf.dishAdd} aria-hidden="true">+</span>
+              </div>
             </div>
           </Link>
         ))}

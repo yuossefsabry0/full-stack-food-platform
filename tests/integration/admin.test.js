@@ -36,12 +36,12 @@ describe('admin dashboard and guards', () => {
     assert.equal(logged.body.navigation.next.rel, 'admin-dashboard');
   });
 
-  it('lists users with only the four allowed fields', async () => {
+  it('lists users with the allowed fields including the admin id', async () => {
     const res = await request(app).get('/api/admin/users?limit=5').set(authed(adminToken));
     assert.equal(res.status, 200);
     assert.ok(res.body.meta.total >= 1);
     for (const u of res.body.data.items) {
-      assert.deepEqual(Object.keys(u).sort(), ['email', 'name', 'userCode', 'username']);
+      assert.deepEqual(Object.keys(u).sort(), ['email', 'id', 'name', 'userCode', 'username']);
     }
     assert.ok(!JSON.stringify(res.body).includes('passwordHash'));
   });

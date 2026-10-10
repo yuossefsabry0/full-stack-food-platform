@@ -20,6 +20,8 @@ describe('addToCart atomic max-quantity check', () => {
     prisma.cart = {
       findUnique: async () => CART,
       create: async () => CART,
+      // getOrCreateCart now uses an atomic upsert (issue 6 race fix).
+      upsert: async () => CART,
     };
   });
 
