@@ -57,10 +57,10 @@ function logRequest({ method, route, statusCode, durationMs }) {
   logger.info('request', { method, route, statusCode, durationMs });
 }
 
-function logError({ method, route, statusCode, code, message }) {
+function logError({ method, route, statusCode, code, message, stack, userId }) {
   logger.error(
     'error',
-    sanitize({ method, route, statusCode, code, message: message || 'Internal server error' })
+    sanitize({ method, route, statusCode, code, message: message || 'Internal server error', stack, userId })
   );
 }
 

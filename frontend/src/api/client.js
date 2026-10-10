@@ -8,7 +8,32 @@ function getAccessToken() {
   return localStorage.getItem('fp_accessToken') || '';
 }
 
-export async function apiFetch(path, { method = 'GET', body, auth = false } = {}) {
+// Guest browse routes where an auth/refresh failure must NOT force a Login
+// redirect — the visitor simply continues as a guest. Every other route keeps
+// the existing forced-redirect-on-failed-refresh behavior.
+function isGuestBrowseRoute() {
+  try {
+    if (typeof window === 'undefined' || !window.location) return true;
+    const pathname = window.location.pathname;
+    return pathname === '/home' || pathname === '/menu';
+  } catch {
+    return false;
+  }
+}
+
+function handleUnauthorizedRedirect(status) {
+  if (status !== 401) return;
+  try {
+    if (typeof window === 'undefined' || !window.location) return;
+    if (window.location.pathname === '/home' || window.location.pathname === '/menu') return;
+    if (window.location.pathname === '/login') return;
+    window.location.href = '/login';
+  } catch {
+    // ignore redirect failures (non-browser / tests)
+  }
+}
+
+export async function apiFetch(path, { method = 'GET', body, auth = false, skipAuthRedirect = false } = {}) {
   const headers = { 'Content-Type': 'application/json' };
   if (auth) {
     const token = getAccessToken();
@@ -30,6 +55,13 @@ export async function apiFetch(path, { method = 'GET', body, auth = false } = {}
     const err = new Error(message);
     err.status = res.status;
     err.payload = payload;
+    // Narrow auth-failure handling: skip the Login redirect only on the public
+    // Home/Menu browse routes (checked via window.location.pathname); every
+    // other page keeps the existing forced redirect. Successful requests and
+    // non-401 failures are unchanged. Exported check reused for refresh flows.
+    if (res.status === 401 && !skipAuthRedirect && !isGuestBrowseRoute()) {
+      handleUnauthorizedRedirect(res.status);
+    }
     throw err;
   }
   return payload;
@@ -40,6 +72,7 @@ export const api = {
   register: (body) => apiFetch('/auth/register', { method: 'POST', body }),
   login: (body) => apiFetch('/auth/login', { method: 'POST', body }),
   refresh: (refreshToken) => apiFetch('/auth/refresh', { method: 'POST', body: { refreshToken } }),
+  logout: (body) => apiFetch('/auth/logout', { method: 'POST', auth: true, body, skipAuthRedirect: true }),
   forgotPassword: (body) => apiFetch('/auth/forgot-password', { method: 'POST', body }),
   verifyOtp: (body) => apiFetch('/auth/verify-otp', { method: 'POST', body }),
   resetPassword: (body) => apiFetch('/auth/reset-password', { method: 'POST', body }),

@@ -26,50 +26,74 @@ function periodBounds(now) {
   };
 }
 
-async function getSalesAnalytics(now) {
+async function getSalesAnalytics(now, dateBasis) {
   const reference = now instanceof Date ? now : new Date();
+  // Date basis for the period buckets: 'created' (default, unchanged
+  // behavior) or 'delivered'. Status filtering stays DELIVERED-only either
+  // way; only the bucketing date changes.
+  const basis = dateBasis === 'delivered' ? 'delivered' : 'created';
+  const dateField = basis === 'delivered' ? 'deliveredAt' : 'createdAt';
   const { startOfDay, startOfMonth, startOfYear } = periodBounds(reference);
 
   // Delivered items since the year start, with their order totals + dates.
   const items = await prisma.orderItem.findMany({
-    where: { order: { status: 'DELIVERED', createdAt: { gte: startOfYear } } },
-    include: { order: { select: { id: true, total: true, createdAt: true } } },
+    where: { order: { status: 'DELIVERED', [dateField]: { gte: startOfYear } } },
+    include: { order: { select: { id: true, total: true, deliveryFee: true, createdAt: true, deliveredAt: true } } },
   });
 
   const unitsSold = { today: 0, month: 0, year: 0 };
   const sales = { today: 0, month: 0, year: 0 };
+  const productRevenue = { today: 0, month: 0, year: 0 };
   const countedOrders = { today: new Set(), month: new Set(), year: new Set() };
 
   for (const item of items) {
-    const at = item.order.createdAt instanceof Date ? item.order.createdAt : new Date(item.order.createdAt);
+    // Records with a null bucketing date cannot be placed in a date bucket
+    // (only possible for dateBasis=delivered) and are excluded from the
+    // date-bucket calculation.
+    const rawDate = item.order[dateField];
+    if (rawDate === null || rawDate === undefined) continue;
+    const at = rawDate instanceof Date ? rawDate : new Date(rawDate);
     const qty = Number(item.quantity);
+    const lineTotal = Number(item.lineTotal);
     unitsSold.year += qty;
+    productRevenue.year = round2(productRevenue.year + lineTotal);
     countedOrders.year.add(item.order.id);
     if (at >= startOfMonth) {
       unitsSold.month += qty;
+      productRevenue.month = round2(productRevenue.month + lineTotal);
       countedOrders.month.add(item.order.id);
     }
     if (at >= startOfDay) {
       unitsSold.today += qty;
+      productRevenue.today = round2(productRevenue.today + lineTotal);
       countedOrders.today.add(item.order.id);
     }
   }
 
   // Total sales = sum of DELIVERED order totals (each order counted once).
   const totalsByOrder = new Map();
+  const feesByOrder = new Map();
   for (const item of items) {
     if (!totalsByOrder.has(item.order.id)) {
       totalsByOrder.set(item.order.id, Number(item.order.total));
+      feesByOrder.set(item.order.id, Number(item.order.deliveryFee));
     }
   }
-  const sumFor = (ids) => {
+  const sumFor = (map, ids) => {
     let sum = 0;
-    for (const id of ids) sum = round2(sum + totalsByOrder.get(id));
+    for (const id of ids) sum = round2(sum + map.get(id));
     return sum;
   };
-  sales.year = sumFor(countedOrders.year);
-  sales.month = sumFor(countedOrders.month);
-  sales.today = sumFor(countedOrders.today);
+  sales.year = sumFor(totalsByOrder, countedOrders.year);
+  sales.month = sumFor(totalsByOrder, countedOrders.month);
+  sales.today = sumFor(totalsByOrder, countedOrders.today);
+  // Delivery fees = sum of DELIVERED order delivery fees (each order once),
+  // so productRevenue + deliveryFees equals the total per period.
+  const deliveryFees = {
+    today: sumFor(feesByOrder, countedOrders.today),
+    month: sumFor(feesByOrder, countedOrders.month),
+    year: sumFor(feesByOrder, countedOrders.year),
+  };
 
   // Units sold for every product (all-time, DELIVERED only). Products with
   // no sales appear with 0; snapshot names keep history stable.
@@ -104,7 +128,7 @@ async function getSalesAnalytics(now) {
     byProduct.push({ productId: null, productName: namesByProduct.get(null), unitsSold: unitsByProduct.get(null) });
   }
 
-  return { unitsSold, sales, byProduct };
+  return { unitsSold, sales, productRevenue, deliveryFees, byProduct };
 }
 
 module.exports = { getSalesAnalytics, periodBounds };

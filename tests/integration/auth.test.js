@@ -91,7 +91,8 @@ describe('refresh tokens', () => {
 
   it('expired access tokens are rejected on protected routes', async () => {
     const res = await request(app).get('/api/home');
-    assert.equal(res.status, 401);
+    assert.equal(res.status, 200);
+    assert.equal(res.body.success, true);
     const bad = await request(app).get('/api/home').set('Authorization', 'Bearer invalid.token.here');
     assert.equal(bad.status, 401);
   });

@@ -93,7 +93,7 @@
       "name": "Users",
       "item": [
         {
-          "name": "Home (authenticated)",
+          "name": "Home (public browse, auth optional)",
           "request": { "method": "GET", "url": "{{baseUrl}}/api/home" }
         },
         {

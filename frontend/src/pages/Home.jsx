@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { api } from '../api/client.js';
+import { useAuth } from '../auth/AuthContext.jsx';
 import { Reveal } from '../components/Reveal.jsx';
 import { FEATURED_FOODS, HERO_IMAGE, STORY_IMAGE } from '../assets/foodImages.js';
 import styles from './Home.module.css';
@@ -7,6 +8,7 @@ import styles from './Home.module.css';
 // Introductory / showcase page only (no ordering logic, no Cart/Menu buttons —
 // navigation to Cart/Menu happens through the top navbar).
 export default function Home() {
+  const { isAuthenticated } = useAuth();
   const [greeting, setGreeting] = useState('');
 
   useEffect(() => {
@@ -32,7 +34,11 @@ export default function Home() {
           <p className={styles.subtitle}>
             {greeting || 'Browse the menu, fill your cart, and track every order from kitchen to door.'}
           </p>
-          <p className={styles.hint}>Use the navigation bar above to explore the Menu, Cart, and Orders.</p>
+          <p className={styles.hint}>
+            {isAuthenticated
+              ? 'Use the navigation bar above to explore the Menu, Cart, and Orders.'
+              : 'Browse the Menu above — log in to add to cart and track orders.'}
+          </p>
         </Reveal>
         <Reveal delay={120} className={styles.heroMedia}>
           <div className={styles.zoomFrame}>

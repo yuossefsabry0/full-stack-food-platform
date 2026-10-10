@@ -17,6 +17,7 @@ const {
   updateStaffSchema,
   adminStaffQuerySchema,
   staffIdParamSchema,
+  analyticsQuerySchema,
 } = require('../validations/admin.validation');
 
 const router = express.Router();
@@ -47,7 +48,7 @@ router.patch(
 router.get('/orders', validate.query(adminOrdersQuerySchema), adminController.orders);
 
 // Analytics: DELIVERED-only product sales + total sales.
-router.get('/analytics', analyticsController.summary);
+router.get('/analytics', validate.query(analyticsQuerySchema), analyticsController.summary);
 
 // CHEF / DELIVERY management: view / create / edit / activate / deactivate.
 // No DELETE route exists — historical orders keep their chefId/deliveryId.

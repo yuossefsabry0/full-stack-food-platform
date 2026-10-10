@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../api/client.js';
 
@@ -15,6 +15,16 @@ export default function DeliveryAddress() {
     phoneNumber: '',
   });
   const [error, setError] = useState('');
+  const [eligibility, setEligibility] = useState(null);
+
+  useEffect(() => {
+    api
+      .cartConfirm()
+      .then((res) => setEligibility(res.data?.preview || null))
+      .catch(() => {});
+  }, []);
+
+  const canCheckout = eligibility ? eligibility.canCheckout !== false : true;
 
   function set(key, value) {
     setForm((f) => ({ ...f, [key]: value }));
@@ -50,7 +60,12 @@ export default function DeliveryAddress() {
             </label>
           ))}
           {error && <p className="error">{error}</p>}
-          <button className="btn btn-primary" type="submit">Place order</button>
+          {canCheckout === false && (
+            <p className="error">
+              You already have an active order{eligibility?.activeOrderId ? ` (order #${eligibility.activeOrderId})` : ''}. A new order is possible after it is delivered.
+            </p>
+          )}
+          <button className="btn btn-primary" type="submit" disabled={canCheckout === false}>Place order</button>
         </form>
       </div>
     </div>

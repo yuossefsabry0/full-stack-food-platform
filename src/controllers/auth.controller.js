@@ -1,6 +1,6 @@
 'use strict';
 
-const { registerBasicUser, loginBasicUser, refreshAccessToken } = require('../services/auth.service');
+const { registerBasicUser, loginBasicUser, refreshAccessToken, logoutUser } = require('../services/auth.service');
 const { success, error } = require('../utils/response');
 const { authNavigation, LINKS } = require('../utils/navigation');
 const env = require('../config/env');
@@ -91,4 +91,24 @@ async function refresh(req, res, next) {
   }
 }
 
-module.exports = { register, login, refresh };
+// Real server-side logout (requires auth): revokes the presented ACCESS
+// token row, plus the paired REFRESH row when supplied for the same user,
+// or every session with { allSessions: true }.
+async function logout(req, res, next) {
+  try {
+    const header = req.headers.authorization || '';
+    const [, accessToken] = header.split(' ');
+    const { refreshToken, allSessions } = req.body || {};
+    await logoutUser({
+      userId: req.user.id,
+      accessToken,
+      refreshToken,
+      allSessions,
+    });
+    return success(res, { message: 'Logged out' });
+  } catch (err) {
+    return next(err);
+  }
+}
+
+module.exports = { register, login, refresh, logout };

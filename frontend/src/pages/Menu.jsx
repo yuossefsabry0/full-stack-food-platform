@@ -53,17 +53,59 @@ export default function Menu() {
       </form>
       {loading && <p className="muted">Loading menu…</p>}
       {error && <p className="error">{error}</p>}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 16 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 16, alignItems: 'stretch' }}>
         {items.map((p) => (
-          <Link key={p.id} to={`/products/${p.id}`} style={{ textDecoration: 'none', color: 'inherit' }}>
-            <div className="card">
+          <Link key={p.id} to={`/products/${p.id}`} style={{ textDecoration: 'none', color: 'inherit', display: 'block', height: '100%' }}>
+            <div className="card" style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
               {p.imageUrl || p.image ? (
-                <img src={p.imageUrl || p.image} alt={p.name} style={{ borderRadius: 8, height: 140, width: '100%', objectFit: 'cover' }} />
+                <div style={{ borderRadius: 8, overflow: 'hidden', width: '100%', aspectRatio: '4 / 3', background: '#f1f5f9', flexShrink: 0 }}>
+                  <img
+                    src={p.imageUrl || p.image}
+                    alt={p.name}
+                    loading="lazy"
+                    style={{ display: 'block', width: '100%', height: '100%', objectFit: 'cover' }}
+                  />
+                </div>
               ) : (
-                <div style={{ borderRadius: 8, height: 140, background: 'linear-gradient(135deg,#e0e7ff,#fef3c7)' }} />
+                <div style={{ borderRadius: 8, width: '100%', aspectRatio: '4 / 3', background: 'linear-gradient(135deg,#e0e7ff,#fef3c7)', flexShrink: 0 }} />
               )}
-              <h3 style={{ margin: '10px 0 4px' }}>{p.name}</h3>
-              <p className="muted" style={{ margin: 0 }}>${Number(p.price).toFixed(2)}</p>
+              <h3
+                style={{
+                  margin: '10px 0 4px',
+                  fontSize: 16,
+                  lineHeight: 1.35,
+                  minHeight: '2.7em',
+                  display: '-webkit-box',
+                  WebkitLineClamp: 2,
+                  WebkitBoxOrient: 'vertical',
+                  overflow: 'hidden',
+                }}
+              >
+                {p.name}
+              </h3>
+              <p
+                className="muted"
+                style={{
+                  margin: '0 0 4px',
+                  fontSize: 13,
+                  lineHeight: 1.45,
+                  minHeight: '2.9em',
+                  display: '-webkit-box',
+                  WebkitLineClamp: 2,
+                  WebkitBoxOrient: 'vertical',
+                  overflow: 'hidden',
+                }}
+              >
+                {p.description || ' '}
+              </p>
+              <p className="muted" style={{ margin: 'auto 0 0', paddingTop: 4, fontFamily: 'inherit', fontWeight: 700, color: '#1f2937' }}>${Number(p.price).toFixed(2)}</p>
+              <span
+                className="btn btn-primary"
+                aria-hidden="true"
+                style={{ display: 'block', width: '100%', textAlign: 'center', borderRadius: 8, padding: '10px 14px', fontWeight: 600, fontSize: 14, marginTop: 10 }}
+              >
+                View Details
+              </span>
             </div>
           </Link>
         ))}

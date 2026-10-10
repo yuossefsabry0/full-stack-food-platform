@@ -86,9 +86,61 @@ export default function AdminStaff() {
         </div>
         {staff.map((s, i) => (
           <div className="card" key={s.id || i} style={{ marginBottom: 10 }}>
-            <strong>{s.name} ({s.username})</strong>
-            <p className="muted">{s.role} · {s.email}</p>
-            {s.id && <button className="btn" onClick={() => toggle(s)}>Toggle active</button>}
+            <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+              <div
+                aria-hidden="true"
+                style={{
+                  width: 48,
+                  height: 48,
+                  borderRadius: '50%',
+                  background: '#111827',
+                  color: '#fff',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontWeight: 700,
+                  fontSize: 18,
+                  flexShrink: 0,
+                }}
+              >
+                {(s.name || s.username || '?').charAt(0).toUpperCase()}
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+                  <strong style={{ fontSize: 15 }}>{s.name} ({s.username})</strong>
+                  <span
+                    style={{
+                      display: 'inline-block',
+                      background: '#f8fafc',
+                      border: '1px solid #e2e8f0',
+                      borderRadius: 999,
+                      padding: '4px 12px',
+                      fontSize: 13,
+                      fontWeight: 600,
+                      color: '#1f2937',
+                    }}
+                  >
+                    {s.role}
+                  </span>
+                </div>
+                <p className="muted" style={{ margin: '4px 0 0', fontSize: 13 }}>{s.email}</p>
+              </div>
+            </div>
+            <div style={{ marginTop: 8, borderTop: '1px solid #e5e7eb', paddingTop: 8, display: 'flex', flexDirection: 'column', gap: 4, fontSize: 14 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}>
+                <span className="muted">User code</span>
+                <strong>{s.userCode || '—'}</strong>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}>
+                <span className="muted">Status</span>
+                <strong>{(s.isActive ?? true) ? 'Active' : 'Inactive'}</strong>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}>
+                <span className="muted">Joined</span>
+                <strong>{s.createdAt ? new Date(s.createdAt).toLocaleString() : '—'}</strong>
+              </div>
+            </div>
+            {s.id && <button className="btn" style={{ marginTop: 10 }} onClick={() => toggle(s)}>Toggle active</button>}
           </div>
         ))}
         {staff.length === 0 && !error && <p className="muted">No staff found.</p>}

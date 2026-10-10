@@ -1,6 +1,6 @@
 # Food Platform API
 
-JSON-only backend API for a food ordering platform. No frontend is included: every UI concept (menus, carts, dashboards, buttons) is exposed as an API route returning JSON with navigation hints for a future frontend.
+Backend API plus React frontend for a food ordering platform. The backend exposes every UI concept (menus, carts, dashboards, buttons) as an API route returning JSON with navigation hints, and the React app in `frontend/` consumes those contracts.
 
 ## Project Overview
 
@@ -19,7 +19,8 @@ Modular Express layout with business logic in services (never in controllers):
 - `src/middlewares/` — `requireAuth` (JWT), `requireRole` (RBAC), `validate` (body/query/params), `rateLimit` (fixed window, proxy-aware), `requestLogger`, error handler.
 - `src/validations/` — Zod schemas for every input surface.
 - `src/utils/` — unified response envelope, navigation links, order-status labels, password hashing, Winston logger.
-- `prisma/` — `schema.prisma` (MySQL) + `seed.js` (admin creation only).
+- `prisma/` — `schema.prisma` (MySQL) + `seed.js` (dual seed: ADMIN account plus 20 `MENU-*` products).
+- `frontend/` — React 18 + React Router app (isolated; talks to the API over HTTP only).
 - `tests/` — `unit/` (pure logic, no DB) and `integration/` (Supertest against a dedicated test DB), sharing `setup.js` + `helpers.js`.
 - `docs/openapi.json` — Swagger/OpenAPI 3.0 for all endpoints.
 - `postman/` — ready-to-run Postman collection organized by module.
@@ -34,7 +35,7 @@ Node.js (>=18), Express.js, JavaScript (CommonJS), Prisma ORM, Zod validation, M
 food-platform-api/
   prisma/
     schema.prisma      # MySQL models, enums, indexes
-    seed.js            # ADMIN creation (source/seed only, idempotent)
+    seed.js            # dual seed: ADMIN + 20 MENU-* products (idempotent by username/email + sku)
   src/
     server.js app.js
     config/ (env, database)
@@ -72,13 +73,16 @@ Copy `.env.example` to `.env`:
 | `JWT_ACCESS_SECRET` / `JWT_ACCESS_EXPIRES_IN` | access-token secret/expiry | `15m` |
 | `JWT_REFRESH_SECRET` / `JWT_REFRESH_EXPIRES_IN` | separate refresh secret/expiry | `7d` |
 | `OTP_EXPIRE_MINUTES` / `OTP_MAX_ATTEMPTS` / `OTP_MAX_REQUESTS_PER_HOUR` / `RESET_TOKEN_EXPIRE_MINUTES` | password-recovery policy | `10` / `5` / `5` / `15` |
+| `OTP_DEV_EXPOSE` | return `devOtp` + log OTPs (only when `"true"` AND dev-like env) | `"false"` |
 | `DELIVERY_FEE` | delivery fee (never hard-coded) | `50` |
 | `ADMIN_NAME` / `ADMIN_USERNAME` / `ADMIN_EMAIL` / `ADMIN_PASSWORD` | seed admin (dev defaults; override in prod) | — |
-| `CORS_ORIGIN` | `*` or comma-separated origins | `*` |
+| `CORS_ORIGIN` | comma-separated allowed origins | dev/test default `http://localhost:5173`; required in production-like envs (startup throws when missing) |
 | `TRUST_PROXY` | `false` \| `true` \| hop count (real client IP) | `false` |
 | `REQUEST_BODY_LIMIT` | max JSON body (oversize → 413) | `1mb` |
 | `LOG_LEVEL` / `LOG_FILE` | operational log verbosity/path | `debug` / `logs/operational.log` |
 | `RATE_LOGIN_MAX` / `RATE_LOGIN_WINDOW_MS` / `RATE_REGISTER_MAX` / `RATE_REGISTER_WINDOW_MS` | sensitive-endpoint budgets | `20`/15min, `20`/hour |
+| `REDIS_URL` | optional shared rate-limiter store (unset = in-memory) | — |
+| `PURGE_AUTH_TOKENS_INTERVAL_MS` | expired-auth-token purge interval | 6 hours |
 
 ## Database Configuration
 
@@ -99,7 +103,24 @@ npm run prisma:migrate    # migrate dev database
 npm run db:seed
 ```
 
-Creates the ADMIN account from `ADMIN_*` env (idempotent — skips when the username/email exists). There is intentionally **no** create-admin endpoint; ADMIN exists only through source/seed.
+Dual seed (idempotent, additive only — existing rows are never overwritten or deleted): creates the ADMIN account from `ADMIN_*` env (skips when the username/email exists; there is intentionally **no** create-admin endpoint) plus the 20 `MENU-*` catalog products (matched by `sku`). Override the `ADMIN_*` defaults in production.
+
+## Frontend
+
+React 18 single-page app in `frontend/` (React Router; no backend imports — HTTP contracts only, see `frontend/src/api/client.js`).
+
+```bash
+cd frontend
+npm install
+npm run dev      # Vite dev server on http://localhost:5173 (proxies /api to the backend)
+npm run build    # production build
+```
+
+| Variable | Purpose | Default |
+|---|---|---|
+| `VITE_API_BASE_URL` | backend API base URL | `http://localhost:3000/api` |
+
+The dev server port (5173) is the backend's dev-like `CORS_ORIGIN` default, so the stock setup works without extra CORS configuration.
 
 ## Authentication
 
@@ -113,7 +134,7 @@ Creates the ADMIN account from `ADMIN_*` env (idempotent — skips when the user
 
 ## Authorization
 
-`requireAuth` (valid JWT + active account) runs first, then `requireRole(...)` enforces one role per area — entirely server-side, never trusting the frontend. Public routes are limited to register, login, refresh, forgot-password, verify-OTP, reset-password, health (and docs).
+`requireAuth` (valid JWT + active account) runs first, then `requireRole(...)` enforces one role per area — entirely server-side, never trusting the frontend. Public routes are limited to register, login, refresh, forgot-password, verify-OTP, reset-password, health (and docs), plus public browse-only reads `GET /api/home` (guest supported via optional auth) and `GET /api/products*` (menu/details).
 
 ## Roles & Permissions
 
@@ -129,6 +150,8 @@ Cross-role access returns `403 FORBIDDEN`; e.g. chefs cannot touch carts and cou
 ## Products
 
 `GET /api/products` (menu: id, name, price, image, description, details link; active only) with `page`/`limit` (limit ≤ 50) and optional case-insensitive partial `search` (2–3 letters match). `GET /api/products/:id` shows name/price/image/description plus the add-to-cart operation. Admin manages products (add/edit/price/name/description/image/activate/deactivate) with soft-deactivation only.
+
+Search implementation note: `search` is a `LIKE '%term%'` scan, so a B-tree index would not help the leading-wildcard match (no index, migration, or code change added for this). Case-insensitivity depends on the MySQL collation (`utf8mb4_unicode_ci` in the test setup). This is fine for a small catalog; when the catalog grows, the future option is a `FULLTEXT` index on `name`/`description` plus a `MATCH ... AGAINST` query change.
 
 ## Cart
 
@@ -168,15 +191,24 @@ Bcrypt password hashing; JWT access + separate refresh secrets/expiry with rotat
 
 ## Rate Limiting
 
-Fixed-window in-memory limiter keyed by client IP (proxy-aware via `TRUST_PROXY`) and, where relevant, email or user id. Budgeted: login, register, refresh, forgot-password, OTP verify/reset, checkout (per user). Emits `429 RATE_LIMITED` with `Retry-After`. Budgets are env-tunable (see table above).
+Fixed-window in-memory limiter keyed by client IP (proxy-aware via `TRUST_PROXY`) and, where relevant, email or user id. Budgeted: login, register, refresh, forgot-password, OTP verify/reset, checkout (per user). Emits `429 RATE_LIMITED` with `Retry-After`. Budgets are env-tunable (see table above). The in-memory limiter is single-instance only: counters live in the Node process, so horizontal scaling needs sticky sessions or the optional Redis store. Set `REDIS_URL` to share counters across instances (same limits and responses); the Redis client is reused across requests, and any Redis runtime failure falls back to the in-memory store without blocking requests.
 
 ## Testing
 
 ```bash
-npm test              # setup test DB + run unit and integration suites
-npm run test:unit
-npm run test:integration
-npm run test:setup    # (re)create test DB + push schema
+npm run test:unit         # unit suite only — needs no database
+npm run test:setup        # prepare the test database only (create + push schema)
+npm run test:integration  # integration suite against the prepared test DB (no auto-setup)
+npm test                  # unit + integration suites (prepare the DB first, see below)
+```
+
+Full integration workflow (the `pretest` auto-setup coupling was removed, so
+setup is explicit):
+
+```bash
+docker compose -f docker-compose.test.yml up -d   # MySQL on 127.0.0.1:3307
+npm run test:setup                                 # create food_platform_test + push schema
+npm run test:integration                           # run the integration suite
 ```
 
 Unit tests (`tests/unit/`) cover pure logic with no database: status labels, navigation, password hashing, token issue/verify/separation, all Zod schemas, response envelopes, rate-limiter behavior, log redaction, analytics period bounds, Postman collection shape. Integration tests (`tests/integration/`, Supertest) cover every module end to end — auth/refresh, password recovery, products/search/pagination, cart flows and isolation, checkout/transactions/rules, chef, delivery (incl. race-safe claims), admin CRUD/filters/staff/analytics, rate-limit trips, and a bidirectional Swagger-vs-router coverage check.

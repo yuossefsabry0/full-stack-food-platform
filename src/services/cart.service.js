@@ -68,23 +68,59 @@ async function findAvailableProduct(productId) {
   return product;
 }
 
+function quantityLimitError() {
+  const err = new Error(`Quantity must be at most ${MAX_QUANTITY}`);
+  err.statusCode = 400;
+  err.code = 'QUANTITY_LIMIT_EXCEEDED';
+  return err;
+}
+
 async function addToCart(userId, productId, quantity) {
   await findAvailableProduct(productId);
   const cart = await getOrCreateCart(userId);
-  // One row per (cart, product): repeat adds increase the quantity.
-  await prisma.cartItem.upsert({
-    where: { cartId_productId: { cartId: cart.id, productId } },
-    update: { quantity: { increment: quantity } },
-    create: { cartId: cart.id, productId, quantity },
-  });
-  const items = await fetchCartItems(cart.id);
-  const overLimit = items.find((i) => i.quantity > MAX_QUANTITY);
-  if (overLimit) {
-    const err = new Error(`Quantity must be at most ${MAX_QUANTITY}`);
-    err.statusCode = 400;
-    err.code = 'QUANTITY_LIMIT_EXCEEDED';
-    throw err;
+  if (quantity > MAX_QUANTITY) {
+    throw quantityLimitError();
   }
+  // One row per (cart, product): repeat adds increase the quantity.
+  // Atomic conditional increment: the row only changes when
+  // quantity + increment <= MAX_QUANTITY.
+  const conditionalIncrement = (tx) =>
+    tx.cartItem.updateMany({
+      where: { cartId: cart.id, productId, quantity: { lte: MAX_QUANTITY - quantity } },
+      data: { quantity: { increment: quantity } },
+    });
+  try {
+    await prisma.$transaction(async (tx) => {
+      const existing = await tx.cartItem.findUnique({
+        where: { cartId_productId: { cartId: cart.id, productId } },
+      });
+      if (existing) {
+        const updated = await conditionalIncrement(tx);
+        if (updated.count === 0) {
+          throw quantityLimitError();
+        }
+      } else {
+        await tx.cartItem.create({ data: { cartId: cart.id, productId, quantity } });
+      }
+    });
+  } catch (err) {
+    if (err && err.statusCode) {
+      throw err;
+    }
+    // Unique-constraint race: the line was created concurrently after our
+    // read. Retry the conditional update exactly once in a NEW transaction.
+    if (err && err.code === 'P2002') {
+      await prisma.$transaction(async (tx) => {
+        const updated = await conditionalIncrement(tx);
+        if (updated.count === 0) {
+          throw quantityLimitError();
+        }
+      });
+    } else {
+      throw err;
+    }
+  }
+  const items = await fetchCartItems(cart.id);
   return toCartShape(cart, items);
 }
 

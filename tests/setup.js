@@ -39,6 +39,11 @@ if (!process.env.JWT_ACCESS_SECRET) {
 if (!process.env.JWT_REFRESH_SECRET) {
   process.env.JWT_REFRESH_SECRET = 'test-refresh-secret-min-32-chars-1234567';
 }
+// Existing OTP tests rely on devOtp: enable dev exposure for tests only
+// (set before src/* is loaded; production default stays disabled).
+if (!process.env.OTP_DEV_EXPOSE) {
+  process.env.OTP_DEV_EXPOSE = 'true';
+}
 if (!process.env.LOG_FILE) {
   process.env.LOG_FILE = 'logs/test-operational.log';
 }

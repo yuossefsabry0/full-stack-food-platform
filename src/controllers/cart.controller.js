@@ -1,5 +1,6 @@
 'use strict';
 
+const prisma = require('../config/database');
 const { getCart, addToCart, updateCartItem, removeFromCart } = require('../services/cart.service');
 const { previewConfirm } = require('../services/order.service');
 const { success, error } = require('../utils/response');
@@ -85,9 +86,21 @@ async function remove(req, res, next) {
 async function confirm(req, res, next) {
   try {
     const preview = await previewConfirm(req.user.id);
+    // Single-active-order eligibility (same rule as checkout's
+    // ACTIVE_ORDER_EXISTS 409): additive fields only, existing keys stay.
+    const activeOrder = await prisma.order.findFirst({
+      where: { userId: req.user.id, status: { not: 'DELIVERED' } },
+      select: { id: true },
+    });
     return success(res, {
       message: 'Confirm your order with a delivery address',
-      data: { preview },
+      data: {
+        preview: {
+          ...preview,
+          canCheckout: !activeOrder,
+          activeOrderId: activeOrder ? activeOrder.id : null,
+        },
+      },
       navigation: {
         links: [LINKS.menu, LINKS.cart, LINKS.confirmOrder, LINKS.deliveryAddress],
         next: LINKS.deliveryAddress,

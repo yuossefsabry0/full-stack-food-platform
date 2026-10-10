@@ -25,9 +25,25 @@ export default function AdminUsers() {
     <>
       <RoleHeader title="Joo Food · Admin" links={ADMIN_LINKS} />
       <div className="page">
-        <h2>Users</h2>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+          <h2 style={{ margin: 0 }}>Users</h2>
+          <span
+            style={{
+              display: 'inline-block',
+              background: '#f8fafc',
+              border: '1px solid #e2e8f0',
+              borderRadius: 999,
+              padding: '4px 12px',
+              fontSize: 13,
+              fontWeight: 600,
+              color: '#1f2937',
+            }}
+          >
+            Total: {users.length}
+          </span>
+        </div>
         {error && <p className="error">{error}</p>}
-        <div className="card" style={{ overflowX: 'auto' }}>
+        <div className="card" style={{ overflowX: 'auto', marginTop: 12 }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14 }}>
             <thead>
               <tr style={{ textAlign: 'left', borderBottom: '1px solid #e5e7eb' }}>

@@ -54,12 +54,55 @@ export default function AdminOrders() {
         {error && <p className="error">{error}</p>}
         {orders.map((o) => (
           <div className="card" key={o.id} style={{ marginBottom: 10 }}>
-            <strong>Order #{o.id}</strong>
-            <p className="muted">
-              {o.status} · ${Number(o.total ?? 0).toFixed(2)}
-              {o.deliveryId ? ` · courier ${o.deliveryId}` : ''}
-              {o.chefId ? ` · chef ${o.chefId}` : ''}
-            </p>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+              <strong style={{ fontSize: 16 }}>Order #{o.id}</strong>
+              <span
+                style={{
+                  display: 'inline-block',
+                  background: '#f8fafc',
+                  border: '1px solid #e2e8f0',
+                  borderRadius: 999,
+                  padding: '4px 12px',
+                  fontSize: 13,
+                  fontWeight: 600,
+                  color: '#1f2937',
+                }}
+              >
+                {o.status}
+              </span>
+            </div>
+            <div style={{ marginTop: 8, borderTop: '1px solid #e5e7eb', paddingTop: 8, display: 'flex', flexDirection: 'column', gap: 4, fontSize: 14 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}>
+                <span className="muted">Items</span>
+                <strong>{Array.isArray(o.items) ? o.items.reduce((sum, it) => sum + (Number(it.quantity) || 0), 0) : '—'}</strong>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}>
+                <span className="muted">Placed</span>
+                <strong>{o.createdAt ? new Date(o.createdAt).toLocaleString() : '—'}</strong>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}>
+                <span className="muted">Total</span>
+                <strong>${Number(o.total ?? 0).toFixed(2)}</strong>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}>
+                <span className="muted">Courier</span>
+                <strong>{o.deliveryId ? `#${o.deliveryId}` : '—'}</strong>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}>
+                <span className="muted">Chef</span>
+                <strong>{o.chefId ? `#${o.chefId}` : '—'}</strong>
+              </div>
+            </div>
+            {Array.isArray(o.items) && o.items.length > 0 && (
+              <div style={{ marginTop: 8, borderTop: '1px solid #e5e7eb', paddingTop: 8, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {o.items.map((it, i) => (
+                  <div key={i} style={{ display: 'flex', justifyContent: 'space-between', gap: 12, fontSize: 14 }}>
+                    <span>{it.productName} × {it.quantity}</span>
+                    <strong>${Number(it.lineTotal ?? it.subtotal ?? 0).toFixed(2)}</strong>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         ))}
         {orders.length === 0 && !error && <p className="muted">No orders found.</p>}

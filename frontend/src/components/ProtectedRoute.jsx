@@ -26,3 +26,20 @@ export function RequireRole({ roles, children }) {
   }
   return children || <Outlet />;
 }
+
+// Public browse-only guard for Home and Menu (list view only).
+// Removes ONLY the "must be authenticated" requirement: guests pass through,
+// BASIC users pass through, other authenticated roles keep the exact existing
+// Role-Based Routing fallback. Never weakens role restrictions.
+export function RequireBasicOrGuest({ children }) {
+  const { isAuthenticated, role } = useAuth();
+  if (!isAuthenticated) {
+    return children || <Outlet />;
+  }
+  if (role !== 'BASIC') {
+    const fallback =
+      role === 'ADMIN' ? '/admin' : role === 'CHEF' ? '/chef/requests' : role === 'DELIVERY' ? '/delivery/current' : '/home';
+    return <Navigate to={fallback} replace />;
+  }
+  return children || <Outlet />;
+}

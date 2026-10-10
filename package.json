@@ -13,7 +13,6 @@
     "prisma:push": "prisma db push",
     "prisma:validate": "prisma validate",
     "test:setup": "node tests/setup-db.js",
-    "pretest": "node tests/setup-db.js",
     "test": "node --test --test-concurrency=1 tests/unit/*.test.js tests/integration/*.test.js",
     "test:unit": "node --test --test-concurrency=1 tests/unit/*.test.js",
     "test:integration": "node --test --test-concurrency=1 tests/integration/*.test.js"
@@ -28,6 +27,7 @@
     "dotenv": "^16.4.5",
     "express": "^4.21.2",
     "helmet": "^8.3.0",
+    "ioredis": "^6.0.0",
     "jsonwebtoken": "^9.0.2",
     "swagger-ui-express": "^5.0.1",
     "winston": "^3.19.0",

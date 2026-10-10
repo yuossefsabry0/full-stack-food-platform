@@ -200,10 +200,56 @@ async function revokeRefreshTokensForUser(userId) {
   });
 }
 
+// Real server-side logout: revoke the presented ACCESS token row. Also
+// revoke the paired REFRESH row when given (only if it belongs to the
+// same user). With allSessions, revoke every non-revoked token row of
+// the current user.
+async function logoutUser({ userId, accessToken, refreshToken, allSessions }) {
+  const now = new Date();
+  if (allSessions === true) {
+    const result = await prisma.authToken.updateMany({
+      where: { userId, revokedAt: null },
+      data: { revokedAt: now },
+    });
+    return { revokedSessions: result.count };
+  }
+  if (accessToken) {
+    await prisma.authToken.updateMany({
+      where: { userId, tokenHash: sha256Hex(accessToken), revokedAt: null },
+      data: { revokedAt: now },
+    });
+  }
+  if (refreshToken) {
+    const refreshRecord = await prisma.authToken.findUnique({
+      where: { tokenHash: sha256Hex(refreshToken) },
+    });
+    if (refreshRecord && refreshRecord.userId === userId && refreshRecord.type === 'REFRESH' && !refreshRecord.revokedAt) {
+      await prisma.authToken.update({
+        where: { id: refreshRecord.id },
+        data: { revokedAt: now },
+      });
+    }
+  }
+  return { revoked: true };
+}
+
+// Purge old rows from auth_tokens: delete only rows whose expiresAt is
+// older than a 7-day grace period. Never delete based on revoked status
+// alone, so refresh reuse detection keeps working.
+async function purgeExpiredAuthTokens() {
+  const graceCutoff = new Date(Date.now() - 7 * 24 * 3600 * 1000);
+  const result = await prisma.authToken.deleteMany({
+    where: { expiresAt: { lt: graceCutoff } },
+  });
+  return { deleted: result.count };
+}
+
 module.exports = {
   registerBasicUser,
   loginBasicUser,
   refreshAccessToken,
   revokeRefreshTokensForUser,
+  logoutUser,
+  purgeExpiredAuthTokens,
   toPublicUser,
 };

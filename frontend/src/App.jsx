@@ -1,7 +1,7 @@
 import React from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
 import { BasicLayout, PlainLayout } from './components/Layouts.jsx';
-import { RequireAuth, RequireRole } from './components/ProtectedRoute.jsx';
+import { RequireAuth, RequireBasicOrGuest, RequireRole } from './components/ProtectedRoute.jsx';
 
 import Login from './pages/Login.jsx';
 import Register from './pages/Register.jsx';
@@ -30,7 +30,7 @@ import AdminStaff from './pages/AdminStaff.jsx';
 import AdminAnalytics from './pages/AdminAnalytics.jsx';
 
 function RoleIndex() {
-  return <Navigate to="/login" replace />;
+  return <Navigate to="/home" replace />;
 }
 
 export default function App() {
@@ -45,12 +45,18 @@ export default function App() {
         <Route path="/reset-password" element={<ResetPassword />} />
       </Route>
 
-      {/* BASIC-only area with the dark-blue top navbar */}
-      <Route element={<RequireRole roles={['BASIC']} />}>
+      {/* Home + Menu + Product details: public browse-only (guest supported), same paths, same navbar shell */}
+      <Route element={<RequireBasicOrGuest />}>
         <Route element={<BasicLayout />}>
           <Route path="/home" element={<Home />} />
           <Route path="/menu" element={<Menu />} />
           <Route path="/products/:id" element={<ProductDetails />} />
+        </Route>
+      </Route>
+
+      {/* BASIC-only protected area with the dark-blue top navbar */}
+      <Route element={<RequireRole roles={['BASIC']} />}>
+        <Route element={<BasicLayout />}>
           <Route path="/cart" element={<Cart />} />
           <Route path="/delivery-address" element={<DeliveryAddress />} />
           <Route path="/orders" element={<Orders />} />

@@ -258,11 +258,11 @@
     "/api/home": {
       "get": {
         "tags": ["Home"],
-        "summary": "Authenticated home entrypoint (all roles)",
-        "security": [{ "bearerAuth": [] }],
+        "summary": "Home entrypoint (public browse; identity when authenticated)",
+        "description": "Public read: no Access Token required for guest browse. Authenticated requests return identity; invalid tokens still return 401. The data object also carries maxQuantity (cart line cap, mirrors server validation).",
         "responses": {
-          "200": { "description": "Welcome + identity" },
-          "401": { "description": "Missing/invalid access token" }
+          "200": { "description": "Welcome + identity (guest when unauthenticated) + maxQuantity" },
+          "401": { "description": "Invalid access token" }
         }
       }
     },
@@ -338,6 +338,22 @@
           "400": { "description": "Validation failed" },
           "401": { "description": "Invalid/expired/revoked refresh token" },
           "429": { "description": "Rate limited" }
+        }
+      }
+    },
+    "/api/auth/logout": {
+      "post": {
+        "tags": ["Authentication"],
+        "summary": "Logout: revoke the presented access token (protected)",
+        "description": "Revokes the presented ACCESS token row. Accepts optional refreshToken (revoked only if it belongs to the same user) and optional allSessions flag to revoke every session.",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": false,
+          "content": { "application/json": { "schema": { "type": "object", "properties": { "refreshToken": { "type": "string" }, "allSessions": { "type": "boolean" } } } } }
+        },
+        "responses": {
+          "200": { "description": "Logged out" },
+          "401": { "description": "Missing/invalid/revoked access token" }
         }
       }
     },
@@ -446,6 +462,7 @@
       "post": {
         "tags": ["Cart"],
         "summary": "Confirm order: totals preview, move to delivery address (BASIC)",
+        "description": "Preview includes canCheckout (boolean) and activeOrderId (integer id or null), reflecting the single-active-order rule without enforcing it.",
         "security": [{ "bearerAuth": [] }],
         "responses": {
           "200": { "description": "Preview + navigation to delivery address" },
@@ -524,7 +541,7 @@
       "post": {
         "tags": ["Orders"],
         "summary": "Delivery address + order creation (BASIC)",
-        "description": "Creates the order, snapshots items, clears the cart in one transaction. One active (non-delivered) order max.",
+        "description": "Creates the order, snapshots items, clears the cart in one transaction. Single-active-order rule: at most one active (non-DELIVERED) order per BASIC user; checkout while another order is active returns 409 ACTIVE_ORDER_EXISTS. Check POST /api/cart/confirm (canCheckout, activeOrderId) before posting.",
         "security": [{ "bearerAuth": [] }],
         "requestBody": {
           "required": true,
@@ -669,6 +686,7 @@
       "get": {
         "tags": ["DELIVERY"],
         "summary": "My delivered orders, read-only limited data (DELIVERY)",
+        "description": "Each row carries customerName, address snapshot, products with per-line unitPrice/subtotal, itemCount, total, createdAt, deliveryId, deliveredAt.",
         "security": [{ "bearerAuth": [] }],
         "parameters": [
           { "name": "page", "in": "query", "schema": { "type": "integer", "minimum": 1, "default": 1 } },
@@ -909,8 +927,11 @@
       "get": {
         "tags": ["Analytics"],
         "summary": "Product sales + total sales from DELIVERED orders (ADMIN)",
-        "description": "Units sold today/month/year, sales today/month/year, units for every product. Carts and undelivered orders never count.",
+        "description": "Units sold today/month/year, sales today/month/year, productRevenue (sum of line subtotals) + deliveryFees per period (productRevenue + deliveryFees equals the total), units for every product. Carts and undelivered orders never count. Optional ?dateBasis=created|delivered selects the bucketing date (default created); delivered buckets by deliveredAt and excludes records with null deliveredAt from the date buckets. Other values are 400 VALIDATION_ERROR.",
         "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "dateBasis", "in": "query", "schema": { "type": "string", "enum": ["created", "delivered"], "default": "created" } }
+        ],
         "responses": {
           "200": { "description": "Analytics payload" },
           "401": { "description": "Missing/invalid access token" },

@@ -24,7 +24,7 @@
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: #1e3a8a;
+  color: #111827;
 }
 
 .title {
@@ -101,7 +101,7 @@
 
 .cardCta {
   margin-top: 10px;
-  color: #1e3a8a;
+  color: #111827;
   font-weight: 700;
   font-size: 14px;
 }

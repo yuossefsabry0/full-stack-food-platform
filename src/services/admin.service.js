@@ -228,16 +228,18 @@ async function updateStaff(adminUserId, staffId, changes) {
   if (!target || (target.role !== 'CHEF' && target.role !== 'DELIVERY')) {
     throw fail(404, 'STAFF_NOT_FOUND', 'Staff account not found');
   }
+  // Self-deactivation guard: triggers only when an admin edits their own
+  // account (staffId matches the acting admin's id) and sets isActive false.
   if (changes.isActive === false && staffId === adminUserId) {
     throw fail(400, 'CANNOT_DEACTIVATE_SELF', 'You cannot deactivate your own admin account');
   }
-  if (changes.username || changes.email) {
+  const duplicateOr = [];
+  if (changes.username) duplicateOr.push({ username: changes.username });
+  if (changes.email) duplicateOr.push({ email: changes.email });
+  if (duplicateOr.length > 0) {
     const clash = await prisma.user.findFirst({
       where: {
-        AND: [
-          { id: { not: staffId } },
-          { OR: [{ username: changes.username || '' }, { email: changes.email || '' }] },
-        ],
+        AND: [{ id: { not: staffId } }, { OR: duplicateOr }],
       },
       select: { username: true, email: true },
     });

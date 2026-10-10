@@ -4,6 +4,7 @@ const express = require('express');
 const authController = require('../controllers/auth.controller');
 const passwordResetController = require('../controllers/passwordReset.controller');
 const validate = require('../middlewares/validate.middleware');
+const { requireAuth } = require('../middlewares/auth.middleware');
 const { rateLimit, emailKey, ipKey } = require('../middlewares/rateLimit.middleware');
 const env = require('../config/env');
 const {
@@ -74,6 +75,10 @@ router.post('/login', loginLimiter, validate(loginSchema), authController.login)
 // all public (no Access Token required):
 // Refresh Token (valid non-revoked refresh -> new token pair).
 router.post('/refresh', refreshLimiter, validate(refreshSchema), authController.refresh);
+
+// Real server-side logout (requires auth): revokes the presented ACCESS
+// token (and optionally the paired REFRESH or all sessions).
+router.post('/logout', requireAuth, authController.logout);
 
 // Forgot Password (email -> 6-digit OTP; always a generic response).
 router.post(

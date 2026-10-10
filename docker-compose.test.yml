@@ -1,0 +1,18 @@
+# Test database only (matches the default TEST_DATABASE_URL in .env.example:
+# mysql://root@127.0.0.1:3307/food_platform_test — empty root password).
+# Usage: docker compose -f docker-compose.test.yml up -d && npm run test:setup
+services:
+  mysql-test:
+    image: mysql:8
+    container_name: food-platform-mysql-test
+    restart: "no"
+    environment:
+      MYSQL_ALLOW_EMPTY_PASSWORD: "yes"
+      MYSQL_DATABASE: food_platform_test
+    ports:
+      - "3307:3306"
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot"]
+      interval: 5s
+      timeout: 5s
+      retries: 10

@@ -24,6 +24,15 @@ function fail(statusCode, code, message, extra) {
 // enumeration (unknown email, no active OTP, wrong OTP).
 const GENERIC_FORGOT_MESSAGE = 'If an account exists for this email, a one-time code has been sent.';
 
+// Read at call time: OTP_DEV_EXPOSE must be the string "true" AND the
+// environment dev-like (NODE_ENV exactly "development" or "test").
+function isOtpDevExposeEnabled() {
+  return (
+    process.env.OTP_DEV_EXPOSE === 'true' &&
+    (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test')
+  );
+}
+
 async function requestPasswordReset(email) {
   const normalizedEmail = String(email).trim().toLowerCase();
   const user = await prisma.user.findUnique({ where: { email: normalizedEmail } });
@@ -71,8 +80,9 @@ async function requestPasswordReset(email) {
   return {
     message: GENERIC_FORGOT_MESSAGE,
     // Development convenience only: lets the flow be exercised without an
-    // email provider. Never set in production.
-    devOtp: env.nodeEnv === 'production' ? undefined : otp,
+    // email provider. Returned only when OTP_DEV_EXPOSE is the string
+    // "true" AND the environment is dev-like.
+    devOtp: isOtpDevExposeEnabled() ? otp : undefined,
   };
 }
 

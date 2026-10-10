@@ -21,7 +21,7 @@ function signAccessToken({ internalId, publicId, role }) {
 
 function verifyAccessToken(token) {
   const payload = jwt.verify(token, env.jwtAccessSecret);
-  if (payload && payload.type && payload.type !== 'ACCESS') {
+  if (!payload || payload.type !== 'ACCESS') {
     throw new Error('Not an access token');
   }
   return payload;
@@ -51,7 +51,7 @@ function signRefreshToken({ internalId, publicId, role }) {
 
 function verifyRefreshToken(token) {
   const payload = jwt.verify(token, env.jwtRefreshSecret);
-  if (payload && payload.type && payload.type !== 'REFRESH') {
+  if (!payload || payload.type !== 'REFRESH') {
     throw new Error('Not a refresh token');
   }
   return payload;

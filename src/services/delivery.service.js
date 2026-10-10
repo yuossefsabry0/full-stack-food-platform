@@ -26,15 +26,31 @@ function toDeliveryOrderShape(order, items, viewerDeliveryId) {
 }
 
 // Limited history shape: name, products, basic info + retained delivery id.
+// Address snapshot and per-line prices come from the same order/item fields
+// as the Current shape (toOrderShape); createdAt added as well.
 function toDeliveryHistoryShape(order, items) {
   return {
     id: order.id,
     status: order.status,
     statusLabel: orderStatusLabel(order.status),
     customerName: order.recipientName,
-    products: items.map((item) => ({ productName: item.productName, quantity: item.quantity })),
+    address: {
+      name: order.recipientName,
+      address: order.address,
+      buildingNumber: order.buildingNumber,
+      apartmentNumber: order.apartmentNumber,
+      streetName: order.streetName,
+      phoneNumber: order.phoneNumber,
+    },
+    products: items.map((item) => ({
+      productName: item.productName,
+      quantity: item.quantity,
+      unitPrice: Math.round(Number(item.unitPrice) * 100) / 100,
+      subtotal: Math.round(Number(item.lineTotal) * 100) / 100,
+    })),
     itemCount: items.reduce((sum, i) => sum + i.quantity, 0),
     total: Math.round(Number(order.total) * 100) / 100,
+    createdAt: order.createdAt,
     deliveryId: order.deliveryId || null,
     deliveredAt: order.deliveredAt || null,
   };
@@ -150,4 +166,4 @@ async function listPreviousOrders(deliveryUserId, { page, limit }) {
   };
 }
 
-module.exports = { listCurrentOrders, acceptOrder, deliverOrder, listPreviousOrders };
+module.exports = { listCurrentOrders, acceptOrder, deliverOrder, listPreviousOrders, toDeliveryHistoryShape };

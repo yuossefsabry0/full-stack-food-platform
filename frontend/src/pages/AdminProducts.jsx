@@ -105,9 +105,59 @@ export default function AdminProducts() {
         </div>
         {products.map((p) => (
           <div className="card" key={p.id} style={{ marginBottom: 10 }}>
-            <strong>{p.name}</strong>
-            <p className="muted">${Number(p.price).toFixed(2)} · {p.isActive ? 'Active' : 'Inactive'}</p>
-            <div style={{ display: 'flex', gap: 8 }}>
+            <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+              {(p.imageUrl || p.image) ? (
+                <img
+                  src={p.imageUrl || p.image}
+                  alt={p.name}
+                  style={{ width: 56, height: 56, borderRadius: 12, objectFit: 'cover', flexShrink: 0 }}
+                />
+              ) : (
+                <div
+                  aria-hidden="true"
+                  style={{ width: 56, height: 56, borderRadius: 12, background: 'linear-gradient(135deg,#e0e7ff,#fef3c7)', flexShrink: 0 }}
+                />
+              )}
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+                  <strong style={{ fontSize: 15 }}>{p.name}</strong>
+                  <span
+                    style={{
+                      display: 'inline-block',
+                      background: '#f8fafc',
+                      border: '1px solid #e2e8f0',
+                      borderRadius: 999,
+                      padding: '4px 12px',
+                      fontSize: 13,
+                      fontWeight: 600,
+                      color: '#1f2937',
+                    }}
+                  >
+                    {p.isActive ? 'Active' : 'Inactive'}
+                  </span>
+                </div>
+                {p.description && (
+                  <p className="muted" style={{ margin: '4px 0 0', fontSize: 13 }}>
+                    {p.description}
+                  </p>
+                )}
+              </div>
+            </div>
+            <div style={{ marginTop: 8, borderTop: '1px solid #e5e7eb', paddingTop: 8, display: 'flex', flexDirection: 'column', gap: 4, fontSize: 14 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}>
+                <span className="muted">Price</span>
+                <strong>${Number(p.price).toFixed(2)}</strong>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}>
+                <span className="muted">SKU</span>
+                <strong>{p.sku || '—'}</strong>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}>
+                <span className="muted">Product ID</span>
+                <strong>#{p.id}</strong>
+              </div>
+            </div>
+            <div style={{ display: 'flex', gap: 8, marginTop: 10, flexWrap: 'wrap' }}>
               <button className="btn" onClick={() => toggle(p)}>
                 {p.isActive ? 'Deactivate' : 'Activate'}
               </button>

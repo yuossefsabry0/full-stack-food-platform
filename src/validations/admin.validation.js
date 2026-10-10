@@ -102,6 +102,12 @@ const staffIdParamSchema = z.object({
   id: z.coerce.number().int('Staff ID must be an integer').positive('Staff ID must be positive'),
 });
 
+// Analytics query: optional date basis for the period buckets. Default is
+// created (exactly today's behavior); anything else is a 400.
+const analyticsQuerySchema = z.object({
+  dateBasis: z.enum(['created', 'delivered']).default('created'),
+});
+
 const productIdParamSchema = z.object({
   id: z.coerce.number().int('Product ID must be an integer').positive('Product ID must be positive'),
 });
@@ -117,4 +123,5 @@ module.exports = {
   updateStaffSchema,
   adminStaffQuerySchema,
   staffIdParamSchema,
+  analyticsQuerySchema,
 };
