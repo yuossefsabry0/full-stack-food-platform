@@ -72,17 +72,52 @@ export default function Orders() {
       </div>
 
       {error && <p className="error" role="alert">{error}</p>}
-      {visible.length === 0 && !error && (
+      {visible.length === 0 && !error && tab === 'All' && (
+        <>
+          <div className={sf.emptyWrap}>
+            <div className={sf.emptyRing} aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="#ea580c" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round">
+                <path d="M6 3h12v18H6z" />
+                <path d="M9 8h6M9 12h6M9 16h3.5" />
+              </svg>
+              <span className={sf.emptySpark} style={{ left: 16, top: 24, color: '#ea580c' }}>✦</span>
+              <span className={sf.emptySpark} style={{ right: 18, bottom: 22, color: '#fbbf24' }}>★</span>
+            </div>
+            <h3 className={sf.emptyTitle}>No orders yet</h3>
+            <p className={sf.emptyText}>
+              When you place your first order, you&apos;ll be able to track it and see your order history here.
+            </p>
+            <div className={sf.emptyCtas}>
+              <Link className={sf.ctaPrimary} to="/menu">
+                Order now
+              </Link>
+            </div>
+          </div>
+          <h3 className={sf.sectionTitle} style={{ fontSize: 17, margin: '20px 0 0' }}>
+            How it works
+          </h3>
+          <div className={sf.howGrid}>
+            <div className={sf.howCard}>
+              <span className={sf.howNum} aria-hidden="true">1</span>
+              <h4>Pick your meal</h4>
+              <p>Browse the menu and add dishes to your cart.</p>
+            </div>
+            <div className={sf.howCard}>
+              <span className={sf.howNum} aria-hidden="true">2</span>
+              <h4>Checkout</h4>
+              <p>Confirm your address and place the order.</p>
+            </div>
+            <div className={sf.howCard}>
+              <span className={sf.howNum} aria-hidden="true">3</span>
+              <h4>Track it live</h4>
+              <p>Follow the status until it reaches your door.</p>
+            </div>
+          </div>
+        </>
+      )}
+      {visible.length === 0 && !error && tab !== 'All' && (
         <div className={sf.orderCard}>
-          <p className="muted" style={{ margin: 0 }}>
-            {tab === 'All' ? (
-              <>
-                No orders yet. <Link to="/menu">Browse the Menu</Link> to get started.
-              </>
-            ) : (
-              <>No {tab.toLowerCase()} orders.</>
-            )}
-          </p>
+          <p className="muted" style={{ margin: 0 }}>No {tab.toLowerCase()} orders.</p>
         </div>
       )}
       {visible.map((o) => {

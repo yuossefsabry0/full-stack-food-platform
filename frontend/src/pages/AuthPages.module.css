@@ -1,0 +1,228 @@
+/* Shared auth theme (Login / Create account / Forgot password).
+ * Presentational only: split card with an orange brand panel on the left and
+ * the real project form on the right. All fields, payloads, and navigation
+ * targets are unchanged. */
+
+.stage {
+  width: 100%;
+  max-width: 880px;
+  margin: 0 auto;
+  padding: 40px clamp(12px, 3vw, 40px) 64px;
+}
+
+.card {
+  display: grid;
+  grid-template-columns: 1fr 1.1fr;
+  background: #fff;
+  border: 1px solid #f0e7da;
+  border-radius: 28px;
+  overflow: hidden;
+  box-shadow: 0 24px 60px rgba(234, 88, 12, 0.14);
+}
+
+@media (max-width: 760px) {
+  .card {
+    grid-template-columns: 1fr;
+  }
+}
+
+.panel {
+  background: linear-gradient(160deg, #f97316 0%, #ea580c 55%, #c2410c 100%);
+  color: #fff;
+  padding: 36px 30px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 10px;
+  position: relative;
+  overflow: hidden;
+}
+
+@media (max-width: 760px) {
+  .panel {
+    padding: 28px 24px;
+  }
+}
+
+.panelBrand {
+  font-weight: 800;
+  font-size: 15px;
+  letter-spacing: 0.02em;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.panelBrandMark {
+  width: 26px;
+  height: 26px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.22);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.panelTitle {
+  margin: 6px 0 0;
+  font-size: 30px;
+  line-height: 1.1;
+  letter-spacing: -0.01em;
+}
+
+.panelText {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.55;
+  color: rgba(255, 255, 255, 0.88);
+  max-width: 34ch;
+}
+
+.panelArt {
+  display: flex;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.panelArt img {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 3px solid rgba(255, 255, 255, 0.55);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
+}
+
+.formSide {
+  padding: 36px 32px;
+}
+
+@media (max-width: 760px) {
+  .formSide {
+    padding: 26px 22px;
+  }
+}
+
+.formTitle {
+  margin: 0;
+  font-size: 24px;
+  color: #1c1917;
+}
+
+.formSub {
+  margin: 4px 0 8px;
+  font-size: 13.5px;
+  color: #78716c;
+}
+
+.strength {
+  height: 6px;
+  border-radius: 999px;
+  background: #f0e7da;
+  margin-top: 8px;
+  overflow: hidden;
+}
+
+.strengthBar {
+  height: 100%;
+  border-radius: 999px;
+  transition: width 0.2s ease, background-color 0.2s ease;
+}
+
+.strengthHint {
+  font-size: 12px;
+  color: #78716c;
+  margin-top: 4px;
+}
+
+.terms {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  font-size: 13px;
+  color: #57534e;
+  margin: 12px 0 0;
+}
+
+.terms input {
+  margin-top: 3px;
+  accent-color: #ea580c;
+}
+
+.authSwitch {
+  margin: 16px 0 0;
+  font-size: 13.5px;
+  color: #78716c;
+  text-align: center;
+}
+
+.authSwitch a {
+  color: #c2410c;
+  font-weight: 700;
+  text-decoration: none;
+  border: 1px solid #fed7aa;
+  background: #fff7ed;
+  border-radius: 999px;
+  padding: 7px 16px;
+  display: inline-block;
+  margin-left: 6px;
+  transition: background-color 0.15s ease;
+}
+
+.authSwitch a:hover {
+  background: #ffedd5;
+  text-decoration: none;
+}
+
+/* Centered variant (Forgot password): peach backdrop with floating dishes. */
+.centerStage {
+  width: 100%;
+  max-width: 560px;
+  margin: 0 auto;
+  padding: 48px clamp(12px, 3vw, 40px) 64px;
+  position: relative;
+}
+
+.floatDish {
+  position: absolute;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 4px solid #fff;
+  box-shadow: 0 10px 26px rgba(234, 88, 12, 0.22);
+  pointer-events: none;
+}
+
+.centerCard {
+  background: #fff;
+  border: 1px solid #f0e7da;
+  border-radius: 24px;
+  padding: 32px 30px;
+  text-align: center;
+  box-shadow: 0 24px 60px rgba(234, 88, 12, 0.14);
+  position: relative;
+}
+
+.centerLock {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: #fff7ed;
+  border: 1px solid #fed7aa;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  margin-bottom: 6px;
+}
+
+.centerNote {
+  margin: 14px 0 0;
+  font-size: 12.5px;
+  color: #78716c;
+  background: #f5fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: 12px;
+  padding: 10px 12px;
+}

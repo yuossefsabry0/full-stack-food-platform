@@ -9,9 +9,12 @@ function cartItemsOf(cart) {
   return [];
 }
 
+const POPULAR_TILES = ['#ffe4e6', '#fef3c7', '#dcfce7'];
+
 export default function Cart() {
   const navigate = useNavigate();
   const [cart, setCart] = useState(null);
+  const [popular, setPopular] = useState([]);
   const [error, setError] = useState('');
 
   async function load() {
@@ -26,6 +29,23 @@ export default function Cart() {
 
   useEffect(() => {
     load();
+  }, []);
+
+  // Popular dishes for the empty-cart panel (real menu data; failures are
+  // ignored so the empty state never breaks).
+  useEffect(() => {
+    let cancelled = false;
+    api
+      .menu({ page: 1, limit: 3 })
+      .then((res) => {
+        const d = res?.data;
+        const list = Array.isArray(d) ? d : d?.items || [];
+        if (!cancelled) setPopular(list.slice(0, 3));
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   async function changeQty(productId, quantity) {
@@ -99,11 +119,56 @@ export default function Cart() {
         </div>
       )}
       {items.length === 0 ? (
-        <div className={sf.panel}>
-          <p className="muted" style={{ margin: 0 }}>
-            Your cart is empty. <Link to="/menu">Browse the Menu</Link> to add dishes.
-          </p>
-        </div>
+        <>
+          <div className={sf.emptyWrap}>
+            <div className={sf.emptyRing} aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="#ea580c" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round">
+                <path d="M3 4h2l2.4 12h11.4l2.2-8H7" />
+                <circle cx="9.5" cy="19.5" r="1.4" fill="#ea580c" stroke="none" />
+                <circle cx="16.5" cy="19.5" r="1.4" fill="#ea580c" stroke="none" />
+              </svg>
+              <span className={sf.emptySpark} style={{ left: 14, top: 22 }}>✦</span>
+              <span className={sf.emptySpark} style={{ right: 16, bottom: 20 }}>✦</span>
+            </div>
+            <h3 className={sf.emptyTitle}>Your cart is empty</h3>
+            <p className={sf.emptyText}>
+              Looks like you haven&apos;t added anything yet. Explore our menu and pick something delicious!
+            </p>
+            <div className={sf.emptyCtas}>
+              <Link className={sf.ctaPrimary} to="/menu">
+                Browse menu
+              </Link>
+            </div>
+          </div>
+          {popular.length > 0 && (
+            <div className={sf.section}>
+              <div className={sf.sectionHead}>
+                <h3 className={sf.sectionTitle} style={{ fontSize: 19 }}>Popular right now</h3>
+                <Link className={sf.sectionLink} to="/menu">
+                  Full menu →
+                </Link>
+              </div>
+              <div className={sf.grid}>
+                {popular.map((p, i) => (
+                  <Link key={p.id} to={`/products/${p.id}`} className={sf.dishCard}>
+                    <div className={sf.dishTile} style={{ background: POPULAR_TILES[i % POPULAR_TILES.length] }}>
+                      {(p.imageUrl || p.image) && (
+                        <img src={p.imageUrl || p.image} alt={p.name} loading="lazy" />
+                      )}
+                    </div>
+                    <div className={sf.dishBody}>
+                      <h4 className={sf.dishName}>{p.name}</h4>
+                      <div className={sf.dishFoot}>
+                        <span className={sf.dishPrice}>${Number(p.price).toFixed(2)}</span>
+                        <span className={sf.dishAdd} aria-hidden="true">+</span>
+                      </div>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            </div>
+          )}
+        </>
       ) : (
         <div className={sf.columns}>
           <div className={sf.panel}>
@@ -127,7 +192,7 @@ export default function Cart() {
                       ${unitPrice.toFixed(2)} each · <strong style={{ color: '#1c1917' }}>${lineTotal.toFixed(2)}</strong>
                     </p>
                     <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 8, flexWrap: 'wrap' }}>
-                      <div className={sf.stepper} role="group" aria-label={`Quantity for ${itemName}`}>
+                      <div className="qty" role="group" aria-label={`Quantity for ${itemName}`}>
                         <button
                           type="button"
                           aria-label={`Decrease quantity for ${itemName}`}

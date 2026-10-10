@@ -29,10 +29,10 @@ body {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
   line-height: 1.5;
   min-height: 100vh;
-  /* Site renders as if the browser were zoomed to 85%: layout, type and
+  /* Site renders as if the browser were zoomed to 90%: layout, type and
    * components all scale together. Supported by Chrome/Edge/Safari and
    * Firefox 126+. No JS, route, or component logic depends on this. */
-  zoom: 0.85;
+  zoom: 0.9;
 }
 
 #root {
@@ -49,10 +49,14 @@ img {
   display: block;
 }
 
+/* Fluid responsive shell: full-bleed gutters that shrink on mobile and grow
+ * on desktop, so no fixed empty side gaps remain at any screen width.
+ * Page-specific grids fill the row (see Storefront.module.css). */
 .page {
-  max-width: 1100px;
+  width: 100%;
+  max-width: 1440px;
   margin: 0 auto;
-  padding: 24px 16px 64px;
+  padding: 24px clamp(12px, 3vw, 40px) 64px;
 }
 
 .card {
@@ -65,6 +69,15 @@ img {
 
 .muted {
   color: var(--muted);
+}
+
+/* Site-wide button system (orange primary family). Class names are unchanged
+ * so every existing `className="btn..."` usage keeps working; variants and
+ * sizes below are additive. */
+:root {
+  --brand-orange: #ea580c;
+  --brand-orange-dark: #c2410c;
+  --brand-orange-soft: #fff1e6;
 }
 
 .btn {
@@ -82,6 +95,7 @@ img {
   font-weight: 600;
   line-height: 1.2;
   text-decoration: none;
+  white-space: nowrap;
   box-shadow: 0 1px 2px rgba(16, 24, 40, 0.06);
   transition: background-color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease, transform 0.05s ease;
 }
@@ -97,27 +111,194 @@ img {
 }
 
 .btn:focus-visible {
-  outline: 2px solid var(--brand-dark-blue);
+  outline: 2px solid var(--brand-orange);
   outline-offset: 2px;
 }
 
+/* Primary CTA: solid orange pill. */
 .btn-primary {
-  background: var(--brand-dark-blue);
-  border-color: var(--brand-dark-blue);
+  background: var(--brand-orange);
+  border-color: var(--brand-orange);
   color: #fff;
-  box-shadow: 0 6px 16px rgba(17, 24, 39, 0.22);
+  box-shadow: 0 6px 16px rgba(234, 88, 12, 0.35);
 }
 
 .btn-primary:hover {
+  background: var(--brand-orange-dark);
+  border-color: var(--brand-orange-dark);
+  color: #fff;
+  box-shadow: 0 8px 20px rgba(194, 65, 12, 0.4);
+}
+
+/* Dark solid button (secondary emphasis). */
+.btn-dark {
+  background: var(--brand-dark-blue);
+  border-color: var(--brand-dark-blue);
+  color: #fff;
+}
+
+.btn-dark:hover {
   background: #030712;
   border-color: #030712;
   color: #fff;
 }
 
-.btn:disabled {
-  opacity: 0.6;
+/* Destructive actions: solid red and outline "cancel/delete" variants. */
+.btn-danger {
+  background: #dc2626;
+  border-color: #dc2626;
+  color: #fff;
+  box-shadow: 0 6px 16px rgba(220, 38, 38, 0.3);
+}
+
+.btn-danger:hover {
+  background: #b91c1c;
+  border-color: #b91c1c;
+  color: #fff;
+}
+
+.btn-danger-outline {
+  background: #fff;
+  border-color: #fecaca;
+  color: #b91c1c;
+}
+
+.btn-danger-outline:hover {
+  background: #fef2f2;
+  border-color: #fca5a5;
+  color: #b91c1c;
+}
+
+.btn:disabled,
+.btn[disabled] {
+  opacity: 0.55;
   cursor: not-allowed;
   box-shadow: none;
+  transform: none;
+}
+
+/* Sizes */
+.btn-sm {
+  padding: 7px 14px;
+  font-size: 13px;
+}
+
+.btn-lg {
+  padding: 13px 26px;
+  font-size: 15px;
+}
+
+/* Loading state: CSS-only spinner, button keeps its size. */
+.btn.is-loading {
+  pointer-events: none;
+  position: relative;
+  color: transparent;
+}
+
+.btn.is-loading::after {
+  content: '';
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.5);
+  border-top-color: #fff;
+  animation: btn-spin 0.7s linear infinite;
+}
+
+.btn:not(.btn-primary):not(.btn-dark):not(.btn-danger).is-loading {
+  color: transparent;
+}
+
+.btn:not(.btn-primary):not(.btn-dark):not(.btn-danger).is-loading::after {
+  border-color: rgba(17, 24, 39, 0.25);
+  border-top-color: var(--brand-dark-blue);
+}
+
+@keyframes btn-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Quantity steppers (small / medium / large) used on Menu-adjacent,
+ * Product details, and Cart controls. Markup contract: container with
+ * class `qty [qty-sm|qty-lg]`, two buttons and a span count. */
+.qty {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: #faf5ee;
+  border: 1px solid #f0e7da;
+  border-radius: 999px;
+  padding: 4px;
+  box-shadow: 0 1px 2px rgba(16, 24, 40, 0.06);
+}
+
+.qty button {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 1px solid #e7e5e4;
+  background: #fff;
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+  color: #1c1917;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.15s ease;
+}
+
+.qty button:last-child {
+  background: var(--brand-orange);
+  border-color: var(--brand-orange);
+  color: #fff;
+  box-shadow: 0 4px 12px rgba(234, 88, 12, 0.4);
+}
+
+.qty button:last-child:hover {
+  background: var(--brand-orange-dark);
+}
+
+.qty button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+.qty span {
+  min-width: 36px;
+  text-align: center;
+  font-weight: 700;
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+  user-select: none;
+  color: #1c1917;
+}
+
+.qty-sm button {
+  width: 26px;
+  height: 26px;
+  font-size: 13px;
+}
+
+.qty-sm span {
+  min-width: 26px;
+  font-size: 12.5px;
+}
+
+.qty-lg button {
+  width: 42px;
+  height: 42px;
+  font-size: 19px;
+}
+
+.qty-lg span {
+  min-width: 48px;
+  font-size: 16px;
 }
 
 .input,

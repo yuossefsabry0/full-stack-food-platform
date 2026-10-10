@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { api } from '../api/client.js';
 import { getMaxQuantity, MAX_QUANTITY_FALLBACK } from '../api/cartConfig.js';
+import sf from './Storefront.module.css';
 
 export default function ProductDetails() {
   const { id } = useParams();
@@ -10,6 +11,7 @@ export default function ProductDetails() {
   const [quantity, setQuantity] = useState(1);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
+  const [adding, setAdding] = useState(false);
   const [maxQuantity, setMaxQuantity] = useState(MAX_QUANTITY_FALLBACK);
 
   useEffect(() => {
@@ -26,187 +28,129 @@ export default function ProductDetails() {
   async function addToCart() {
     setError('');
     setNotice('');
+    setAdding(true);
     try {
       await api.cartAdd({ productId: Number(id), quantity });
       setNotice('Added to cart.');
     } catch (err) {
       setError(err.message);
+    } finally {
+      setAdding(false);
     }
   }
 
   if (error && !product) {
     return (
-      <div className="page">
-        <p className="error">{error}</p>
+      <div className={sf.page}>
+        <p className="error" role="alert">{error}</p>
         <button className="btn" onClick={() => navigate('/menu')}>Back to Menu</button>
       </div>
     );
   }
 
-  if (!product) return <div className="page"><p className="muted">Loading…</p></div>;
+  if (!product) {
+    return (
+      <div className={sf.page}>
+        <p className="muted">Loading…</p>
+      </div>
+    );
+  }
+
+  const image = product.imageUrl || product.image;
+  const lineTotal = Number(product.price) * (Number(quantity) || 1);
 
   return (
-    <div className="page">
-      <div style={{ display: 'flex', gap: 16, alignItems: 'flex-start' }}>
-        <button
-          className="btn"
-          onClick={() => navigate('/menu')}
-          style={{
-            flexShrink: 0,
-            whiteSpace: 'nowrap',
-            borderRadius: 10,
-            padding: '10px 18px',
-            fontWeight: 700,
-            fontSize: 14,
-            border: '1px solid #e2e8f0',
-            background: '#fff',
-            color: '#111827',
-            boxShadow: '0 1px 2px rgba(16, 24, 40, 0.06)',
-          }}
-        >
+    <div className={sf.page}>
+      <span className={sf.pageLabel}>
+        <span className={sf.pageLabelDot} aria-hidden="true" />
+        Product Details
+      </span>
+      <div style={{ marginTop: 12 }}>
+        <button className={sf.ctaGhost} onClick={() => navigate('/menu')} style={{ border: '1px solid #f0e7da' }}>
           ← Menu
         </button>
-        <div
-          className="card"
-          style={{
-            marginTop: 0,
-            flex: 1,
-            minWidth: 0,
-            padding: 20,
-            borderRadius: 16,
-            border: '1px solid #e5e7eb',
-            background: '#fff',
-            boxShadow: '0 4px 16px rgba(16, 24, 40, 0.08)',
-          }}
-        >
-        {product.imageUrl || product.image ? (
-          <div style={{ borderRadius: 12, overflow: 'hidden', width: '100%', aspectRatio: '16 / 10', background: '#f1f5f9' }}>
-            <img
-              src={product.imageUrl || product.image}
-              alt={product.name}
-              style={{ display: 'block', width: '100%', height: '100%', objectFit: 'cover' }}
+      </div>
+      <div className={sf.columns} style={{ gridTemplateColumns: '1.1fr 1fr', marginTop: 16 }}>
+        <div className={sf.panel} style={{ padding: 16 }}>
+          {image ? (
+            <div style={{ borderRadius: 18, overflow: 'hidden', aspectRatio: '1 / 1', background: 'linear-gradient(135deg,#ffedd5,#fecaca)' }}>
+              <img
+                src={image}
+                alt={product.name}
+                loading="lazy"
+                style={{ display: 'block', width: '100%', height: '100%', objectFit: 'cover' }}
+              />
+            </div>
+          ) : (
+            <div
+              aria-hidden="true"
+              style={{ borderRadius: 18, aspectRatio: '1 / 1', background: 'linear-gradient(135deg,#ffedd5,#fecaca)' }}
             />
-          </div>
-        ) : null}
-        <h2 style={{ margin: '14px 0 4px', fontSize: 22, lineHeight: 1.25, fontWeight: 800, color: '#111827' }}>{product.name}</h2>
-        <p style={{ margin: '0 0 8px', fontSize: 18, fontWeight: 800, color: '#111827' }}>${Number(product.price).toFixed(2)}</p>
-        {product.description && (
-          <p style={{ margin: '0 0 4px', fontSize: 14, lineHeight: 1.6, color: '#4b5563' }}>{product.description}</p>
-        )}
-        <div style={{ display: 'flex', gap: 12, alignItems: 'center', marginTop: 12, flexWrap: 'wrap' }}>
-          <div
-            role="group"
-            aria-label="Select quantity"
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: 4,
-              background: '#f8fafc',
-              border: '1px solid #e2e8f0',
-              borderRadius: 999,
-              padding: 4,
-              boxShadow: '0 1px 2px rgba(16, 24, 40, 0.06)',
-            }}
-          >
-            <button
-              className="btn"
-              type="button"
-              aria-label="Decrease quantity"
-              disabled={quantity <= 1}
-              onClick={() => setQuantity((q) => Math.max(1, (Number(q) || 1) - 1))}
-              style={{
-                width: 36,
-                height: 36,
-                padding: 0,
-                display: 'inline-flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                borderRadius: '50%',
-                border: '1px solid #e2e8f0',
-                background: '#fff',
-                fontSize: 18,
-                fontWeight: 700,
-                lineHeight: 1,
-                color: '#111827',
-                cursor: 'pointer',
-                opacity: quantity <= 1 ? 0.4 : 1,
-              }}
-            >
-              −
-            </button>
-            <span
-              aria-live="polite"
-              style={{
-                minWidth: 48,
-                textAlign: 'center',
-                fontWeight: 700,
-                fontSize: 16,
-                fontVariantNumeric: 'tabular-nums',
-                userSelect: 'none',
-                color: '#1f2937',
-              }}
-            >
-              {quantity}
-            </span>
-            <button
-              className="btn"
-              type="button"
-              aria-label="Increase quantity"
-              disabled={quantity >= maxQuantity}
-              onClick={() => setQuantity((q) => Math.min(maxQuantity, (Number(q) || 1) + 1))}
-              style={{
-                width: 36,
-                height: 36,
-                padding: 0,
-                display: 'inline-flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                borderRadius: '50%',
-                border: '1px solid #111827',
-                background: '#111827',
-                fontSize: 18,
-                fontWeight: 700,
-                lineHeight: 1,
-                color: '#fff',
-                cursor: 'pointer',
-                opacity: quantity >= 99 ? 0.4 : 1,
-              }}
-            >
-              +
-            </button>
+          )}
+        </div>
+        <div className={sf.panel}>
+          <p className={sf.heroEyebrow} style={{ marginBottom: 4 }}>Dish</p>
+          <h2 style={{ margin: '0 0 6px', fontSize: 28, color: '#1c1917' }}>{product.name}</h2>
+          <p style={{ margin: '0 0 6px', fontSize: 22, fontWeight: 800, color: '#ea580c' }}>
+            ${Number(product.price).toFixed(2)}
+          </p>
+          {product.description && (
+            <p style={{ margin: '0 0 4px', fontSize: 14, lineHeight: 1.6, color: '#57534e' }}>{product.description}</p>
+          )}
+          <div style={{ display: 'flex', gap: 12, alignItems: 'center', marginTop: 16, flexWrap: 'wrap' }}>
+            <div className="qty qty-lg" role="group" aria-label="Select quantity">
+              <button
+                type="button"
+                aria-label="Decrease quantity"
+                disabled={quantity <= 1}
+                onClick={() => setQuantity((q) => Math.max(1, (Number(q) || 1) - 1))}
+              >
+                −
+              </button>
+              <span aria-live="polite">{quantity}</span>
+              <button
+                type="button"
+                aria-label="Increase quantity"
+                disabled={quantity >= maxQuantity}
+                onClick={() => setQuantity((q) => Math.min(maxQuantity, (Number(q) || 1) + 1))}
+              >
+                +
+              </button>
+            </div>
+            <span className="muted" style={{ fontSize: 12.5 }}>Max {maxQuantity} per order</span>
           </div>
           <button
-            className="btn btn-primary"
+            className={`btn btn-primary btn-lg ${adding ? 'is-loading' : ''}`}
             onClick={addToCart}
-            style={{ borderRadius: 999, padding: '10px 22px', fontWeight: 600, fontSize: 14 }}
+            disabled={adding}
+            style={{ width: '100%', marginTop: 16, justifyContent: 'space-between', paddingLeft: 22, paddingRight: 22 }}
           >
-            Add to Cart
+            <span>{adding ? 'Adding…' : 'Add to cart'}</span>
+            <span>${lineTotal.toFixed(2)}</span>
           </button>
-        </div>
-        {notice && (
-          <p
-            role="status"
-            style={{
-              margin: '12px 0 0',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 8,
-              background: '#ecfdf5',
-              border: '1px solid #6ee7b7',
-              borderLeft: '4px solid #10b981',
-              borderRadius: 8,
-              padding: '10px 14px',
-              color: '#065f46',
-              fontWeight: 600,
-              fontSize: 14,
-              boxShadow: '0 1px 2px rgba(6, 95, 70, 0.12)',
-            }}
-          >
-            <span aria-hidden="true" style={{ fontSize: 16, fontWeight: 700 }}>✓</span>
-            {notice}
-          </p>
-        )}
-        {error && <p className="error">{error}</p>}
+          {notice && (
+            <p
+              role="status"
+              style={{
+                margin: '12px 0 0',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 8,
+                background: '#ecfdf5',
+                border: '1px solid #6ee7b7',
+                borderLeft: '4px solid #10b981',
+                borderRadius: 8,
+                padding: '10px 14px',
+                color: '#065f46',
+                fontWeight: 600,
+                fontSize: 14,
+              }}
+            >
+              <span aria-hidden="true">✓</span>
+              {notice}
+            </p>
+          )}
+          {error && <p className="error" role="alert">{error}</p>}
         </div>
       </div>
     </div>

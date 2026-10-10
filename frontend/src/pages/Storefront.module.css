@@ -687,3 +687,107 @@
   background: #dcfce7;
   color: #15803d;
 }
+
+/* ---------- Empty states (Cart / Orders) ---------- */
+
+.emptyWrap {
+  background: var(--sf-card);
+  border: 1px solid var(--sf-line);
+  border-radius: 28px;
+  padding: 48px 24px 40px;
+  text-align: center;
+  box-shadow: 0 2px 8px rgba(28, 25, 23, 0.05);
+}
+
+.emptyRing {
+  width: 148px;
+  height: 148px;
+  border-radius: 50%;
+  margin: 0 auto 20px;
+  border: 2px dashed #fdba74;
+  background: radial-gradient(circle, #fff7ed 0%, #ffedd5 70%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+.emptyRing svg {
+  width: 64px;
+  height: 64px;
+}
+
+.emptySpark {
+  position: absolute;
+  font-size: 20px;
+  line-height: 1;
+}
+
+.emptyTitle {
+  margin: 0 0 8px;
+  font-size: 26px;
+  color: var(--sf-ink);
+  letter-spacing: -0.01em;
+}
+
+.emptyText {
+  margin: 0 auto 20px;
+  font-size: 14px;
+  color: var(--sf-muted);
+  max-width: 44ch;
+}
+
+.emptyCtas {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.howGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-top: 16px;
+  text-align: left;
+}
+
+@media (max-width: 640px) {
+  .howGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.howCard {
+  background: var(--sf-card);
+  border: 1px solid var(--sf-line);
+  border-radius: 16px;
+  padding: 16px;
+}
+
+.howNum {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--sf-orange-soft);
+  color: var(--sf-orange-dark);
+  font-size: 13px;
+  font-weight: 800;
+  margin-bottom: 8px;
+}
+
+.howCard h4 {
+  margin: 0 0 4px;
+  font-size: 14.5px;
+  color: var(--sf-ink);
+}
+
+.howCard p {
+  margin: 0;
+  font-size: 12.5px;
+  color: var(--sf-muted);
+  line-height: 1.5;
+}
