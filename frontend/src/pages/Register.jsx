@@ -49,7 +49,7 @@ export default function Register() {
   return (
     <div className="page">
       <div className={styles.stage}>
-        <div className={styles.card}>
+        <div className={`${styles.card} ${styles.compact}`}>
           <div className={styles.panel}>
             <span className={styles.panelBrand}>
               <span className={styles.panelBrandMark} aria-hidden="true">J</span>

@@ -29,7 +29,7 @@ describe('postman collection', () => {
     const requests = flattenItems(collection.item, []);
     assert.ok(requests.length >= 30, `expected 30+ requests, got ${requests.length}`);
     // POST routes that intentionally carry no body.
-    const bodyless = ['/api/cart/confirm', '/prepare', '/accept', '/deliver'];
+    const bodyless = ['/api/cart/confirm', '/prepare', '/handover', '/accept', '/deliver'];
     for (const entry of requests) {
       const req = entry.request;
       assert.ok(req.method, `${entry.name} missing method`);

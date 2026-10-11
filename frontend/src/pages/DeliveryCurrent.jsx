@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { api } from '../api/client.js';
-import { DELIVERY_LINKS, RoleHeader } from '../components/RoleHeader.jsx';
+import { useAuth } from '../auth/AuthContext.jsx';
+import dash from './RoleDashboard.module.css';
 
 function listOf(res) {
   const d = res?.data;
@@ -11,9 +13,12 @@ function listOf(res) {
 }
 
 export default function DeliveryCurrent() {
+  const { logout, user } = useAuth();
   const [orders, setOrders] = useState([]);
   const [mine, setMine] = useState([]);
   const [error, setError] = useState('');
+  const [busyId, setBusyId] = useState(null);
+  const [tab, setTab] = useState('all');
 
   async function load() {
     setError('');
@@ -35,21 +40,27 @@ export default function DeliveryCurrent() {
 
   async function accept(id) {
     setError('');
+    setBusyId(id);
     try {
       await api.deliveryAccept(id);
       await load();
     } catch (err) {
       setError(err.message);
+    } finally {
+      setBusyId(null);
     }
   }
 
   async function deliver(id) {
     setError('');
+    setBusyId(id);
     try {
       await api.deliveryDeliver(id);
       await load();
     } catch (err) {
       setError(err.message);
+    } finally {
+      setBusyId(null);
     }
   }
 
@@ -105,78 +116,136 @@ export default function DeliveryCurrent() {
     );
   }
 
-  return (
-    <>
-      <RoleHeader title="Joo Food · Delivery" links={DELIVERY_LINKS} />
-      <div className="page">
-        <h2>Current delivery orders</h2>
-        {error && <p className="error">{error}</p>}
-        {mine.length > 0 && (
-          <>
-            <h3>My active delivery</h3>
-            {mine.map((o) => (
-              <div className="card" key={o.id} style={{ marginBottom: 10 }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
-                  <strong style={{ fontSize: 16 }}>Order #{o.id}</strong>
-                  <span
-                    style={{
-                      display: 'inline-block',
-                      background: '#f8fafc',
-                      border: '1px solid #e2e8f0',
-                      borderRadius: 999,
-                      padding: '4px 12px',
-                      fontSize: 13,
-                      fontWeight: 600,
-                      color: '#1f2937',
-                    }}
-                  >
-                    {o.statusLabel || o.status}
-                  </span>
-                </div>
-                {orderDetails(o)}
-                <button
-                  className="btn btn-primary"
-                  onClick={() => deliver(o.id)}
-                  style={{ display: 'block', width: '100%', textAlign: 'center', borderRadius: 8, padding: '10px 14px', fontWeight: 600, fontSize: 14, marginTop: 10 }}
-                >
-                  Mark delivered
-                </button>
-              </div>
-            ))}
-          </>
-        )}
-        <h3>Ready for delivery</h3>
-        {orders.length === 0 && <div className="card"><p className="muted">Nothing ready right now.</p></div>}
-        {orders.map((o) => (
-          <div className="card" key={o.id} style={{ marginBottom: 10 }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
-              <strong style={{ fontSize: 16 }}>Order #{o.id}</strong>
-              <span
-                style={{
-                  display: 'inline-block',
-                  background: '#f8fafc',
-                  border: '1px solid #e2e8f0',
-                  borderRadius: 999,
-                  padding: '4px 12px',
-                  fontSize: 13,
-                  fontWeight: 600,
-                  color: '#1f2937',
-                }}
-              >
-                {o.statusLabel || o.status}
-              </span>
-            </div>
-            {orderDetails(o)}
-            <button
-              className="btn btn-primary"
-              onClick={() => accept(o.id)}
-              style={{ display: 'block', width: '100%', textAlign: 'center', borderRadius: 8, padding: '10px 14px', fontWeight: 600, fontSize: 14, marginTop: 10 }}
-            >
-              Accept
-            </button>
+  function itemCount(o) {
+    return Array.isArray(o.items) ? o.items.reduce((s, it) => s + (Number(it.quantity) || 0), 0) : 0;
+  }
+
+  function timeOf(o) {
+    try {
+      return o.createdAt
+        ? new Date(o.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        : '—';
+    } catch {
+      return '—';
+    }
+  }
+
+  function renderReadyCard(o) {
+    return (
+      <article key={o.id} className={dash.orderCard}>
+        <div className={dash.orderHead}>
+          <div>
+            <h3 className={dash.orderId}>Order #{o.id}</h3>
+            <p className={dash.orderMeta}>{itemCount(o)} items · Ordered {timeOf(o)}</p>
           </div>
-        ))}
-      </div>
-    </>
+          <span className={`${dash.pill} ${dash.pillReady}`}>Ready</span>
+        </div>
+        <ul className={dash.itemList}>
+          {(o.items || []).slice(0, 4).map((it, i) => (
+            <li key={i} className={dash.itemRow}><span className={dash.dot} aria-hidden="true" />{it.productName} × {it.quantity}</li>
+          ))}
+        </ul>
+        {o.address && (
+          <div className={dash.customerBox}>
+            <span>👤 Customer: <strong>{o.address.name}</strong></span>
+            <span>📍 {o.address.address}, Bldg {o.address.buildingNumber}, Apt {o.address.apartmentNumber} · {o.address.phoneNumber}</span>
+          </div>
+        )}
+        <div className={dash.totalRow}>
+          <span className="muted">Price ${Number(o.productsTotal ?? 0).toFixed(2)} + Delivery ${Number(o.deliveryFee ?? 0).toFixed(2)}</span>
+          <strong className={dash.totalStrong}>${Number(o.total ?? 0).toFixed(2)}</strong>
+        </div>
+        {orderDetails(o)}
+        <button className={dash.receiveBtn} onClick={() => accept(o.id)} disabled={busyId === o.id}>
+          {busyId === o.id ? 'Accepting…' : '🛵 Receive order'}
+        </button>
+      </article>
+    );
+  }
+
+  function renderWayCard(o) {
+    return (
+      <article key={o.id} className={dash.orderCard}>
+        <div className={dash.orderHead}>
+          <div>
+            <h3 className={dash.orderId}>Order #{o.id}</h3>
+            <p className={dash.orderMeta}>{itemCount(o)} items · Ordered {timeOf(o)}</p>
+          </div>
+          <span className={`${dash.pill} ${dash.pillWay}`}>On the way</span>
+        </div>
+        <ul className={dash.itemList}>
+          {(o.items || []).slice(0, 4).map((it, i) => (
+            <li key={i} className={dash.itemRow}><span className={dash.dot} aria-hidden="true" />{it.productName} × {it.quantity}</li>
+          ))}
+        </ul>
+        {o.address && (
+          <div className={dash.customerBox}>
+            <span>👤 Customer: <strong>{o.address.name}</strong></span>
+            <span>📍 {o.address.address}, Bldg {o.address.buildingNumber}, Apt {o.address.apartmentNumber} · {o.address.phoneNumber}</span>
+          </div>
+        )}
+        <div className={dash.totalRow}>
+          <span className="muted">Cash on delivery</span>
+          <strong className={dash.totalStrong}>${Number(o.total ?? 0).toFixed(2)}</strong>
+        </div>
+        {orderDetails(o)}
+        <button className={dash.handoverBtn} onClick={() => deliver(o.id)} disabled={busyId === o.id}>
+          {busyId === o.id ? 'Delivering…' : '✓ Delivered to customer'}
+        </button>
+      </article>
+    );
+  }
+
+  const showReady = tab === 'all' || tab === 'ready';
+  const showWay = tab === 'all' || tab === 'way';
+
+  return (
+    <div className={dash.shell}>
+      <aside className={dash.sidebar} aria-label="Delivery navigation">
+        <div className={dash.brand}>
+          <span className={dash.brandMark} aria-hidden="true">J</span>
+          Joo food
+        </div>
+        <nav className={dash.nav}>
+          <Link to="/delivery/current" className={`${dash.navLink} ${dash.navLinkActive}`}>🧾 Orders</Link>
+          <Link to="/delivery/previous" className={dash.navLink}>🕘 History</Link>
+        </nav>
+        <button type="button" className={dash.logoutBtn} onClick={logout}>↩ Logout</button>
+      </aside>
+      <main className={dash.main}>
+        <div className={dash.topbar}>
+          <div>
+            <h1 className={dash.title}>Delivery Dashboard</h1>
+            <p className={dash.sub}>Accept the chef, deliver, done.</p>
+          </div>
+          <div className={dash.userChip}>
+            <span className={dash.userName}>🛵 {user?.username || 'delivery'}</span>
+            <button type="button" className={dash.topLogout} onClick={logout}>Logout</button>
+          </div>
+        </div>
+        <div className={dash.tabs} role="tablist" aria-label="Delivery filters">
+          <button type="button" role="tab" aria-selected={tab === 'all'} className={`${dash.tab} ${tab === 'all' ? dash.tabActive : ''}`} onClick={() => setTab('all')}>All ({orders.length + mine.length})</button>
+          <button type="button" role="tab" aria-selected={tab === 'ready'} className={`${dash.tab} ${tab === 'ready' ? dash.tabActive : ''}`} onClick={() => setTab('ready')}>Ready to pick up ({orders.length})</button>
+          <button type="button" role="tab" aria-selected={tab === 'way'} className={`${dash.tab} ${tab === 'way' ? dash.tabActive : ''}`} onClick={() => setTab('way')}>On the way ({mine.length})</button>
+        </div>
+        {error && <p className={dash.error} role="alert">{error}</p>}
+        <div className={dash.columns}>
+          {showReady && (
+            <section aria-label="Ready to pick up">
+              <h2 className={dash.columnTitle}>📦 Ready to pick up <span className={dash.countBadge}>{orders.length}</span></h2>
+              {orders.length === 0 && <div className={dash.emptyCard}>Nothing ready right now.</div>}
+              {orders.map(renderReadyCard)}
+            </section>
+          )}
+          {showWay && (
+            <section aria-label="On the way">
+              <h2 className={dash.columnTitle}>🛵 On the way <span className={dash.countBadge}>{mine.length}</span></h2>
+              {mine.length === 0 && <div className={dash.emptyCard}>No active delivery.</div>}
+              {mine.map(renderWayCard)}
+            </section>
+          )}
+        </div>
+      </main>
+    </div>
   );
 }

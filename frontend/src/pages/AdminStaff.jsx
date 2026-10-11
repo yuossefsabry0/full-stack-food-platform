@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { api } from '../api/client.js';
-import { ADMIN_LINKS, RoleHeader } from '../components/RoleHeader.jsx';
+import AdminShell from '../components/AdminShell.jsx';
+import styles from './AdminDashboard.module.css';
 
 function listOf(res) {
   const d = res?.data;
@@ -56,19 +57,19 @@ export default function AdminStaff() {
     }
   }
 
+  const activeKey = role === 'CHEF' ? 'chef' : role === 'DELIVERY' ? 'delivery' : 'staff';
+  const heading = role === 'CHEF' ? 'Chef Management' : role === 'DELIVERY' ? 'Delivery Management' : 'All Staff';
+
   return (
-    <>
-      <RoleHeader title="Joo Food · Admin" links={ADMIN_LINKS} />
-      <div className="page">
-        <h2>{role === 'CHEF' ? 'Chef Management' : role === 'DELIVERY' ? 'Delivery Management' : 'Staff'}</h2>
-        <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
-          <button className="btn" onClick={() => setParams({})}>All</button>
-          <button className="btn" onClick={() => setParams({ role: 'CHEF' })}>Chefs</button>
-          <button className="btn" onClick={() => setParams({ role: 'DELIVERY' })}>Delivery</button>
+    <AdminShell active={activeKey} title={heading} sub={`Staff accounts — total ${staff.length}.`}>
+        <div className={styles.toolbar} role="toolbar" aria-label="Staff role filter">
+          <button className={`${styles.filterBtn} ${role === '' ? styles.filterBtnActive : ''}`} onClick={() => setParams({})}>All</button>
+          <button className={`${styles.filterBtn} ${role === 'CHEF' ? styles.filterBtnActive : ''}`} onClick={() => setParams({ role: 'CHEF' })}>Chefs</button>
+          <button className={`${styles.filterBtn} ${role === 'DELIVERY' ? styles.filterBtnActive : ''}`} onClick={() => setParams({ role: 'DELIVERY' })}>Delivery</button>
         </div>
         {error && <p className="error">{error}</p>}
-        <div className="card" style={{ marginBottom: 16 }}>
-          <h3>Add staff (CHEF / DELIVERY only — backend blocks ADMIN)</h3>
+        <div className={styles.tableCard} style={{ marginBottom: 16 }}>
+          <h3 style={{ margin: '0 0 8px' }}>Add staff (CHEF / DELIVERY only — backend blocks ADMIN)</h3>
           <form onSubmit={onAdd}>
             <label className="field">Name<input className="input" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required /></label>
             <label className="field">Username<input className="input" value={form.username} onChange={(e) => setForm({ ...form, username: e.target.value })} required /></label>
@@ -85,41 +86,15 @@ export default function AdminStaff() {
           </form>
         </div>
         {staff.map((s, i) => (
-          <div className="card" key={s.id || i} style={{ marginBottom: 10 }}>
+          <div className={styles.tableCard} key={s.id || i} style={{ marginBottom: 12 }}>
             <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-              <div
-                aria-hidden="true"
-                style={{
-                  width: 48,
-                  height: 48,
-                  borderRadius: '50%',
-                  background: '#111827',
-                  color: '#fff',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontWeight: 700,
-                  fontSize: 18,
-                  flexShrink: 0,
-                }}
-              >
+              <span className={styles.avatar} aria-hidden="true">
                 {(s.name || s.username || '?').charAt(0).toUpperCase()}
-              </div>
+              </span>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
                   <strong style={{ fontSize: 15 }}>{s.name} ({s.username})</strong>
-                  <span
-                    style={{
-                      display: 'inline-block',
-                      background: '#f8fafc',
-                      border: '1px solid #e2e8f0',
-                      borderRadius: 999,
-                      padding: '4px 12px',
-                      fontSize: 13,
-                      fontWeight: 600,
-                      color: '#1f2937',
-                    }}
-                  >
+                  <span className={`${styles.pill} ${styles.pillNeutral}`}>
                     {s.role}
                   </span>
                 </div>
@@ -137,7 +112,9 @@ export default function AdminStaff() {
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}>
                 <span className="muted">Status</span>
-                <strong>{(s.isActive ?? true) ? 'Active' : 'Inactive'}</strong>
+                <span className={`${styles.pill} ${(s.isActive ?? true) ? styles.pillActive : styles.pillInactive}`}>
+                  {(s.isActive ?? true) ? 'Active' : 'Inactive'}
+                </span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}>
                 <span className="muted">Joined</span>
@@ -148,7 +125,6 @@ export default function AdminStaff() {
           </div>
         ))}
         {staff.length === 0 && !error && <p className="muted">No staff found.</p>}
-      </div>
-    </>
+    </AdminShell>
   );
 }

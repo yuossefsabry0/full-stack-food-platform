@@ -24,15 +24,24 @@ const chefWriteLimiter = rateLimit({
   code: 'RATE_LIMITED',
 });
 
-// Request Orders — PENDING orders with preparation data.
+// Request Orders — PENDING + PREPARING orders with preparation data.
 router.get('/requests', chefController.requests);
 
-// Prepared operation — the only status change a CHEF can perform.
+// Accept operation — PENDING → PREPARING (first chef status change).
 router.post(
   '/requests/:id/prepare',
   chefWriteLimiter,
   validate.params(orderIdParamSchema),
   chefController.prepare
+);
+
+// Hand-over operation — PREPARING → READY_FOR_DELIVERY, accepting chef only
+// (second chef status change; only now does delivery see the order).
+router.post(
+  '/requests/:id/handover',
+  chefWriteLimiter,
+  validate.params(orderIdParamSchema),
+  chefController.handover
 );
 
 // Previous Orders — own prepared orders, read-only (no write routes).

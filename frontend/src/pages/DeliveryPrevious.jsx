@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { api } from '../api/client.js';
-import { DELIVERY_LINKS, RoleHeader } from '../components/RoleHeader.jsx';
+import { useAuth } from '../auth/AuthContext.jsx';
+import dash from './RoleDashboard.module.css';
 
 function listOf(res) {
   const d = res?.data;
@@ -11,6 +13,7 @@ function listOf(res) {
 }
 
 export default function DeliveryPrevious() {
+  const { logout, user } = useAuth();
   const [orders, setOrders] = useState([]);
   const [error, setError] = useState('');
 
@@ -75,37 +78,49 @@ export default function DeliveryPrevious() {
   }
 
   return (
-    <>
-      <RoleHeader title="Joo Food · Delivery" links={DELIVERY_LINKS} />
-      <div className="page">
-        <h2>Previous deliveries (read-only)</h2>
-        {error && <p className="error">{error}</p>}
-        {orders.length === 0 && !error && (
-          <div className="card"><p className="muted">No delivered orders yet.</p></div>
-        )}
-        {orders.map((o) => (
-          <div className="card" key={o.id} style={{ marginBottom: 10 }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
-              <strong style={{ fontSize: 16 }}>Order #{o.id}</strong>
-              <span
-                style={{
-                  display: 'inline-block',
-                  background: '#f8fafc',
-                  border: '1px solid #e2e8f0',
-                  borderRadius: 999,
-                  padding: '4px 12px',
-                  fontSize: 13,
-                  fontWeight: 600,
-                  color: '#1f2937',
-                }}
-              >
-                {o.statusLabel || o.status}
-              </span>
-            </div>
-            {orderDetails(o)}
+    <div className={dash.shell}>
+      <aside className={dash.sidebar} aria-label="Delivery navigation">
+        <div className={dash.brand}>
+          <span className={dash.brandMark} aria-hidden="true">J</span>
+          Joo food
+        </div>
+        <nav className={dash.nav}>
+          <Link to="/delivery/current" className={dash.navLink}>🧾 Orders</Link>
+          <Link to="/delivery/previous" className={`${dash.navLink} ${dash.navLinkActive}`}>🕘 History</Link>
+        </nav>
+        <button type="button" className={dash.logoutBtn} onClick={logout}>↩ Logout</button>
+      </aside>
+      <main className={dash.main}>
+        <div className={dash.topbar}>
+          <div>
+            <h1 className={dash.title}>Delivery Dashboard</h1>
+            <p className={dash.sub}>Previous deliveries (read-only).</p>
           </div>
-        ))}
-      </div>
-    </>
+          <div className={dash.userChip}>
+            <span className={dash.userName}>🛵 {user?.username || 'delivery'}</span>
+            <button type="button" className={dash.topLogout} onClick={logout}>Logout</button>
+          </div>
+        </div>
+        {error && <p className={dash.error} role="alert">{error}</p>}
+        <section aria-label="Previous deliveries">
+          <h2 className={dash.columnTitle}>📦 History <span className={dash.countBadge}>{orders.length}</span></h2>
+          {orders.length === 0 && !error && <div className={dash.emptyCard}>No delivered orders yet.</div>}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 14 }}>
+            {orders.map((o) => (
+              <article key={o.id} className={dash.orderCard} style={{ marginBottom: 0 }}>
+                <div className={dash.orderHead}>
+                  <div>
+                    <h3 className={dash.orderId}>Order #{o.id}</h3>
+                    <p className={dash.orderMeta}>{o.customerName || ''}</p>
+                  </div>
+                  <span className={`${dash.pill} ${dash.pillReady}`}>{o.statusLabel || o.status}</span>
+                </div>
+                {orderDetails(o)}
+              </article>
+            ))}
+          </div>
+        </section>
+      </main>
+    </div>
   );
 }

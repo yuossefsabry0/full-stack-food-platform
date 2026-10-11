@@ -13,10 +13,11 @@ const PROGRESS = [
   { key: 'DELIVERED', label: 'Delivered' },
 ];
 
-const STEP_AT = { PENDING: 'createdAt', READY_FOR_DELIVERY: 'preparedAt', OUT_FOR_DELIVERY: 'acceptedAt', DELIVERED: 'deliveredAt' };
+const STEP_AT = { PENDING: 'createdAt', PREPARING: 'preparedAt', READY_FOR_DELIVERY: 'preparedAt', OUT_FOR_DELIVERY: 'acceptedAt', DELIVERED: 'deliveredAt' };
 
 function stepIndex(status) {
   switch (status) {
+    case 'PREPARING':
     case 'READY_FOR_DELIVERY':
       return 1;
     case 'OUT_FOR_DELIVERY':

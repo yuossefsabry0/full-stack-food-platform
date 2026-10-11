@@ -1,6 +1,6 @@
 'use strict';
 
-const { listRequestOrders, prepareOrder, listPreviousOrders } = require('../services/chef.service');
+const { listRequestOrders, prepareOrder, handoverOrder, listPreviousOrders } = require('../services/chef.service');
 const { success, error } = require('../utils/response');
 const { LINKS } = require('../utils/navigation');
 
@@ -22,7 +22,7 @@ function serviceError(res, err) {
   return null;
 }
 
-// GET /api/chef/requests — orders requiring preparation (PENDING).
+// GET /api/chef/requests — active kitchen queue (PENDING + my PREPARING).
 async function requests(req, res, next) {
   try {
     const items = await listRequestOrders();
@@ -36,12 +36,12 @@ async function requests(req, res, next) {
   }
 }
 
-// POST /api/chef/requests/:id/prepare — Prepared operation.
+// POST /api/chef/requests/:id/prepare — Accept operation (PENDING → PREPARING).
 async function prepare(req, res, next) {
   try {
     const order = await prepareOrder(req.user.id, req.validatedParams.id);
     return success(res, {
-      message: 'Order prepared and ready for delivery',
+      message: 'Order accepted and being prepared',
       data: { order },
       navigation: chefNavigation(LINKS.chefHistory),
     });
@@ -50,7 +50,23 @@ async function prepare(req, res, next) {
   }
 }
 
-// GET /api/chef/history — own prepared orders (read-only).
+// POST /api/chef/requests/:id/handover — Hand-over operation
+// (PREPARING → READY_FOR_DELIVERY, accepting chef only). Makes the order
+// visible to delivery; the user display does not advance on hand-over.
+async function handover(req, res, next) {
+  try {
+    const order = await handoverOrder(req.user.id, req.validatedParams.id);
+    return success(res, {
+      message: 'Order handed over to delivery',
+      data: { order },
+      navigation: chefNavigation(LINKS.chefHistory),
+    });
+  } catch (err) {
+    return serviceError(res, err) || next(err);
+  }
+}
+
+// GET /api/chef/history — own handed-over orders (read-only).
 async function history(req, res, next) {
   try {
     // Pagination is pre-validated by validate.query(paginationSchema).
@@ -66,4 +82,4 @@ async function history(req, res, next) {
   }
 }
 
-module.exports = { requests, prepare, history };
+module.exports = { requests, prepare, handover, history };

@@ -1,9 +1,131 @@
-/* Admin dashboard entry: tile/grid of cards, plain CSS (no library). */
+/* Admin dashboard entry: tile/grid of cards, plain CSS (no library).
+ * Extended with sidebar + stat cards + chart to match the design concept.
+ * Presentational only: all admin routes, payloads and guards unchanged. */
 
 .wrap {
   max-width: 1100px;
   margin: 0 auto;
   padding: 32px 16px 72px;
+}
+
+.shell {
+  display: flex;
+  align-items: stretch;
+  min-height: 100vh;
+  min-height: 100dvh;
+  background: #f4ede5;
+  /* Reset the site-wide 0.9 zoom (global.css) inside admin only: vh units
+   * resolve to true viewport px again, so the sidebar spans the exact full
+   * height with no white strip beneath, and fixed layers no longer repaint
+   * one frame off during route switches. Internal proportions are unchanged
+   * (zoom scales the whole subtree together); no logic/routes affected. */
+  zoom: 1;
+  overflow-x: clip;
+}
+
+/* Full-bleed fixed sidebar: pinned to the viewport edges (top/left/bottom)
+ * with height derived from the pins (no vh lengths, which mis-size under
+ * zoom) so it always spans the exact full page height with no gaps beneath,
+ * matching the design concept. Removed from flex flow; .main offsets. */
+.sidebar {
+  width: 216px;
+  flex-shrink: 0;
+  background: #131313;
+  color: #fff;
+  display: flex;
+  flex-direction: column;
+  padding: 18px 12px;
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  height: auto;
+  min-height: 0;
+  z-index: 40;
+  overflow-y: auto;
+  overflow-x: hidden;
+  margin: 0;
+  border: 0;
+  border-radius: 0;
+}
+
+.sideBrand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 800;
+  font-size: 14px;
+  padding: 4px 10px 16px;
+}
+
+.sideBrandMark {
+  width: 26px;
+  height: 26px;
+  border-radius: 8px;
+  background: #ea580c;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.sideNav {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+}
+
+.sideLink {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  color: #d6d3d1;
+  text-decoration: none;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.sideLink:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+  text-decoration: none;
+}
+
+.sideLinkActive {
+  background: #ea580c;
+  color: #fff;
+}
+
+.sideLogout {
+  margin-top: 12px;
+  width: 100%;
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  color: #fff;
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  text-align: left;
+}
+
+.sideLogout:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.main {
+  flex: 1;
+  min-width: 0;
+  margin-left: 216px;
+  padding: 22px 26px 48px;
+  /* Clip any transient horizontal overflow on mount so no edge flash can
+   * appear at the right side of the page during route switches. */
+  overflow-x: clip;
 }
 
 .head {
@@ -15,7 +137,7 @@
   border: 1px solid #e5e7eb;
   border-radius: 16px;
   padding: 24px;
-  margin-bottom: 24px;
+  margin-bottom: 18px;
 }
 
 .eyebrow {
@@ -29,7 +151,7 @@
 
 .title {
   margin: 0;
-  font-size: 30px;
+  font-size: 26px;
 }
 
 .sub {
@@ -41,19 +163,70 @@
   background: #111827;
   color: #fff;
   border: 1px solid #111827;
-  border-radius: 8px;
+  border-radius: 999px;
   padding: 9px 16px;
   cursor: pointer;
   white-space: nowrap;
+  font-weight: 700;
+  font-size: 13px;
+}
+
+.stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
+  margin-bottom: 18px;
+}
+
+@media (max-width: 1000px) {
+  .stats {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 560px) {
+  .stats {
+    grid-template-columns: 1fr;
+  }
+}
+
+.statCard {
+  background: #fff;
+  border: 1px solid #f0e7da;
+  border-radius: 16px;
+  padding: 16px;
+  box-shadow: 0 8px 24px rgba(28, 25, 23, 0.06);
+}
+
+.statLabel {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 700;
+  color: #78716c;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.statValue {
+  margin: 4px 0 0;
+  font-size: 24px;
+  font-weight: 800;
+  color: #1c1917;
+}
+
+.statHint {
+  margin: 4px 0 0;
+  font-size: 12px;
+  color: #78716c;
 }
 
 .grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 18px;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
 }
 
-@media (max-width: 860px) {
+@media (max-width: 1100px) {
   .grid {
     grid-template-columns: repeat(2, 1fr);
   }
@@ -72,8 +245,8 @@
 .card {
   background: #ffffff;
   border: 1px solid #e5e7eb;
-  border-radius: 12px;
-  padding: 20px;
+  border-radius: 16px;
+  padding: 18px;
   text-decoration: none;
   color: inherit;
   display: flex;
@@ -87,16 +260,29 @@
   box-shadow: 0 6px 18px rgba(16, 24, 40, 0.08);
 }
 
+.cardIcon {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  background: #fff7ed;
+  border: 1px solid #fed7aa;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 17px;
+}
+
 .cardTitle {
-  margin: 0;
-  font-size: 18px;
+  margin: 6px 0 0;
+  font-size: 15px;
 }
 
 .cardText {
   margin: 0;
   color: #6b7280;
-  font-size: 14px;
+  font-size: 12.5px;
   flex: 1;
+  min-height: 32px;
 }
 
 .cardCta {
@@ -104,4 +290,255 @@
   color: #111827;
   font-weight: 700;
   font-size: 14px;
+}
+
+.chart {
+  display: flex;
+  align-items: flex-end;
+  gap: 6px;
+  height: 64px;
+  margin-top: 8px;
+}
+
+.bar {
+  flex: 1;
+  background: linear-gradient(180deg, #fb923c, #ea580c);
+  border-radius: 4px 4px 2px 2px;
+  min-height: 6px;
+}
+
+/* Neutral skeleton bars shown only until analytics resolves, so no orange
+ * bars paint-swap flicker on the right side when mounting the dashboard. */
+.barSkeleton {
+  flex: 1;
+  background: #e7e5e4;
+  border-radius: 4px 4px 2px 2px;
+  min-height: 6px;
+}
+
+@media (max-width: 760px) {
+  .shell {
+    flex-direction: column;
+  }
+  .sidebar {
+    width: 100%;
+    height: auto;
+    min-height: 0;
+    position: static;
+    overflow: visible;
+  }
+  .sideNav {
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+  .main {
+    margin-left: 0;
+    padding: 16px 14px 40px;
+  }
+}
+
+/* Shared admin-section layout (Users / Products / Orders / Chef / Delivery /
+ * All Staff / Analytics): same dimensions as the dashboard — page head,
+ * white table card, status pills, matching the design concept. Additive only;
+ * existing page logic/markup is unchanged. */
+
+.sectionHead {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.sectionTitle {
+  margin: 0;
+  font-size: 22px;
+  color: #1c1917;
+  letter-spacing: -0.01em;
+}
+
+.sectionSub {
+  margin: 4px 0 0;
+  font-size: 13px;
+  color: #78716c;
+}
+
+.userChip {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.userName {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #c2410c;
+  background: #fff7ed;
+  border: 1px solid #fed7aa;
+  border-radius: 999px;
+  padding: 6px 12px;
+}
+
+.tableCard {
+  background: #fff;
+  border: 1px solid #f0e7da;
+  border-radius: 16px;
+  padding: 18px;
+  box-shadow: 0 8px 24px rgba(28, 25, 23, 0.06);
+  overflow-x: auto;
+}
+
+.dataTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13.5px;
+}
+
+.dataTable thead tr {
+  text-align: left;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.dataTable thead th {
+  font-size: 11.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #78716c;
+  font-weight: 800;
+  padding: 8px 10px;
+  white-space: nowrap;
+}
+
+.dataTable tbody td {
+  padding: 10px;
+  border-bottom: 1px solid #f3f4f6;
+  color: #292524;
+  vertical-align: middle;
+}
+
+.dataTable tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.dataTable tbody tr {
+  transition: background-color 0.12s ease;
+}
+
+.dataTable tbody tr:hover {
+  background: #fff7ed;
+}
+
+.cellName {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 700;
+  color: #1c1917;
+}
+
+.miniAvatar {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: #131313;
+  color: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 13px;
+  flex-shrink: 0;
+}
+
+/* Horizontal share bars (Analytics → Units per product), matching the
+ * reference panel. Widths derive from existing unitsSold data only. */
+.meter {
+  height: 6px;
+  border-radius: 999px;
+  background: #f5f5f4;
+  margin-top: 6px;
+  overflow: hidden;
+  min-width: 120px;
+}
+
+.meterFill {
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #fb923c, #ea580c);
+}
+
+.pill {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  border-radius: 999px;
+  padding: 4px 11px;
+  white-space: nowrap;
+  border: 1px solid transparent;
+}
+
+.pillActive {
+  background: #f0fdf4;
+  color: #15803d;
+  border-color: #bbf7d0;
+}
+
+.pillInactive {
+  background: #fef2f2;
+  color: #b91c1c;
+  border-color: #fecaca;
+}
+
+.pillInfo {
+  background: #fff7ed;
+  color: #c2410c;
+  border-color: #fed7aa;
+}
+
+.pillNeutral {
+  background: #f8fafc;
+  color: #1f2937;
+  border-color: #e2e8f0;
+}
+
+.toolbar {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.filterBtn {
+  border: 1px solid #e7e5e4;
+  background: #fff;
+  color: #57534e;
+  border-radius: 999px;
+  padding: 7px 14px;
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.filterBtnActive {
+  background: #131313;
+  border-color: #131313;
+  color: #fff;
+}
+
+.avatar {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: #131313;
+  color: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 14px;
+  flex-shrink: 0;
 }

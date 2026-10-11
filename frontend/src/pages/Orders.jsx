@@ -12,11 +12,14 @@ function unwrapList(res) {
 }
 
 // Progress position derived only from the real backend statuses
-// (PENDING → READY_FOR_DELIVERY → OUT_FOR_DELIVERY → DELIVERED).
+// (PENDING → PREPARING → READY_FOR_DELIVERY → OUT_FOR_DELIVERY → DELIVERED).
+// PREPARING and READY_FOR_DELIVERY both sit on "Preparing": the hand-over to
+// delivery does not advance the user-visible progress.
 const STEPS = ['Placed', 'Preparing', 'On the way', 'Delivered'];
 
 function stepIndex(status) {
   switch (status) {
+    case 'PREPARING':
     case 'READY_FOR_DELIVERY':
       return 1;
     case 'OUT_FOR_DELIVERY':

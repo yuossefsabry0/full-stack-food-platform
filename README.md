@@ -141,7 +141,7 @@ The dev server port (5173) is the backend's dev-like `CORS_ORIGIN` default, so t
 | Role | Allowed areas |
 |---|---|
 | BASIC | menu/products (public), own cart, checkout, own orders, home |
-| CHEF | `/api/chef/*`: request orders, prepare, own history |
+| CHEF | `/api/chef/*`: request orders, prepare (accept), hand over to delivery, own history |
 | DELIVERY | `/api/delivery/*`: current orders, accept, deliver, own history |
 | ADMIN | `/api/admin/*`: dashboard, users, products, orders, staff, analytics |
 
@@ -166,16 +166,16 @@ Checkout posts the full delivery address (all six fields required by Zod) and at
 ## Order Lifecycle
 
 ```
-PENDING → READY_FOR_DELIVERY → OUT_FOR_DELIVERY → DELIVERED
+PENDING → PREPARING → READY_FOR_DELIVERY → OUT_FOR_DELIVERY → DELIVERED
 ```
 
-Implemented transitions: chef moves `PENDING` straight to `READY_FOR_DELIVERY`; delivery moves `READY_FOR_DELIVERY → OUT_FOR_DELIVERY → DELIVERED`. `PREPARING` remains a reserved enum/label value (stored type + display label exist) but is never written by the API; the admin UI offers no `PREPARING` filter so queries cannot return a dead empty set.
+Implemented transitions: chef accepts `PENDING → PREPARING` (user sees preparing; delivery cannot see the order yet), then hands over `PREPARING → READY_FOR_DELIVERY` (accepting chef only; user display unchanged, delivery can now accept). Delivery moves `READY_FOR_DELIVERY → OUT_FOR_DELIVERY → DELIVERED` (user sees on the way, then delivered).
 
-The database stores only these English enum values. API responses add display labels: PENDING = “In Progress”, PREPARING = “Your order has been prepared by the restaurant” (reserved), READY_FOR_DELIVERY = “Ready for Delivery”, OUT_FOR_DELIVERY = “The order has gone out for delivery by the Delivery”, DELIVERED = “The order has been delivered”.
+The database stores only these English enum values. API responses add display labels: PENDING = “In Progress”, PREPARING = “Your order has been prepared by the restaurant”, READY_FOR_DELIVERY = “Ready for Delivery”, OUT_FOR_DELIVERY = “The order has gone out for delivery by the Delivery”, DELIVERED = “The order has been delivered”.
 
 ## CHEF Workflow
 
-`GET /api/chef/requests` lists `PENDING` orders with preparation data (items, quantities, totals, address). `POST /api/chef/requests/:id/prepare` is the only chef status change: an atomic `PENDING → READY_FOR_DELIVERY` recording `chefId` + `preparedAt`. Prepared orders leave requests, appear read-only in `GET /api/chef/history` (chefId retained for admin), and become visible to delivery.
+`GET /api/chef/requests` lists the active kitchen queue (`PENDING` + accepted `PREPARING`) with preparation data (items, quantities, totals, address). `POST /api/chef/requests/:id/prepare` accepts an order: atomic `PENDING → PREPARING` recording `chefId` + `preparedAt` (user sees preparing). `POST /api/chef/requests/:id/handover` hands it over: atomic `PREPARING → READY_FOR_DELIVERY` restricted to the accepting chef (user display unchanged). Only handed-over orders leave requests, appear read-only in `GET /api/chef/history` (chefId retained for admin), and become visible to delivery.
 
 ## DELIVERY Workflow
 

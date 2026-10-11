@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { api } from '../api/client.js';
-import { ADMIN_LINKS, RoleHeader } from '../components/RoleHeader.jsx';
+import AdminShell from '../components/AdminShell.jsx';
+import styles from './AdminDashboard.module.css';
 
 function listOf(res) {
   const d = res?.data;
@@ -32,10 +33,7 @@ export default function AdminOrders() {
   }, [status]);
 
   return (
-    <>
-      <RoleHeader title="Joo Food · Admin" links={ADMIN_LINKS} />
-      <div className="page">
-        <h2>Orders</h2>
+    <AdminShell active="orders" title="Orders" sub={`All current orders — total ${orders.length}.`}>
         <form
           onSubmit={(e) => {
             e.preventDefault();
@@ -46,9 +44,7 @@ export default function AdminOrders() {
           <select className="input" value={status} onChange={(e) => setParams(e.target.value ? { status: e.target.value } : {})} aria-label="Filter orders by status">
             <option value="">All statuses</option>
             <option value="PENDING">PENDING</option>
-            {/* PREPARING is a reserved enum value never written by the API
-                (chef moves PENDING straight to READY_FOR_DELIVERY); no option
-                is offered so the filter cannot return a dead empty set. */}
+            <option value="PREPARING">PREPARING</option>
             <option value="READY_FOR_DELIVERY">READY_FOR_DELIVERY</option>
             <option value="OUT_FOR_DELIVERY">OUT_FOR_DELIVERY</option>
             <option value="DELIVERED">DELIVERED</option>
@@ -58,20 +54,17 @@ export default function AdminOrders() {
         {error && <p className="error" role="alert">{error}</p>}
         {orders.length === 0 && !error && <p className="muted">No orders match this filter. Try clearing the status.</p>}
         {orders.map((o) => (
-          <div className="card" key={o.id} style={{ marginBottom: 10 }}>
+          <div className={styles.tableCard} key={o.id} style={{ marginBottom: 12 }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
               <strong style={{ fontSize: 16 }}>Order #{o.id}</strong>
               <span
-                style={{
-                  display: 'inline-block',
-                  background: '#f8fafc',
-                  border: '1px solid #e2e8f0',
-                  borderRadius: 999,
-                  padding: '4px 12px',
-                  fontSize: 13,
-                  fontWeight: 600,
-                  color: '#1f2937',
-                }}
+                className={`${styles.pill} ${
+                  o.status === 'DELIVERED'
+                    ? styles.pillActive
+                    : o.status === 'PENDING'
+                      ? styles.pillInfo
+                      : styles.pillNeutral
+                }`}
               >
                 {o.status}
               </span>
@@ -111,7 +104,6 @@ export default function AdminOrders() {
           </div>
         ))}
         {orders.length === 0 && !error && <p className="muted">No orders found.</p>}
-      </div>
-    </>
+    </AdminShell>
   );
 }

@@ -595,10 +595,10 @@
     "/api/chef/requests": {
       "get": {
         "tags": ["CHEF"],
-        "summary": "Request orders: PENDING with preparation data (CHEF)",
+        "summary": "Request orders: PENDING + PREPARING with preparation data (CHEF)",
         "security": [{ "bearerAuth": [] }],
         "responses": {
-          "200": { "description": "Pending orders oldest first" },
+          "200": { "description": "Active kitchen queue oldest first" },
           "401": { "description": "Missing/invalid access token" },
           "403": { "description": "Non-CHEF role" }
         }
@@ -607,17 +607,34 @@
     "/api/chef/requests/{id}/prepare": {
       "post": {
         "tags": ["CHEF"],
-        "summary": "Prepared operation: PENDING to READY_FOR_DELIVERY + chefId (CHEF)",
-        "description": "The only status change a chef can perform. Atomic single step.",
+        "summary": "Accept operation: PENDING to PREPARING + chefId (CHEF)",
+        "description": "First chef status change. Atomic single step; delivery cannot see the order yet.",
         "security": [{ "bearerAuth": [] }],
         "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "integer", "minimum": 1 }, "description": "Order ID" }],
         "responses": {
-          "200": { "description": "Order prepared" },
+          "200": { "description": "Order accepted and being prepared" },
           "400": { "description": "Validation failed" },
           "401": { "description": "Missing/invalid access token" },
           "403": { "description": "Non-CHEF role" },
           "404": { "description": "Order not found" },
           "409": { "description": "Order not preparable" }
+        }
+      }
+    },
+    "/api/chef/requests/{id}/handover": {
+      "post": {
+        "tags": ["CHEF"],
+        "summary": "Hand-over operation: PREPARING to READY_FOR_DELIVERY (CHEF)",
+        "description": "Second chef status change, accepting chef only. Only now does the order become visible to delivery. Atomic single step.",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "integer", "minimum": 1 }, "description": "Order ID" }],
+        "responses": {
+          "200": { "description": "Order handed over to delivery" },
+          "400": { "description": "Validation failed" },
+          "401": { "description": "Missing/invalid access token" },
+          "403": { "description": "Non-CHEF role" },
+          "404": { "description": "Order not found" },
+          "409": { "description": "Order not handable" }
         }
       }
     },

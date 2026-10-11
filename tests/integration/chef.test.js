@@ -41,25 +41,55 @@ describe('chef workflow', () => {
     const basic = await loginAs(`ch${Date.now().toString(36)}b`);
     assert.equal((await request(app).get('/api/chef/requests').set(authed(basic.token))).status, 403);
     assert.equal((await request(app).post('/api/chef/requests/1/prepare').set(authed(basic.token))).status, 403);
+    assert.equal((await request(app).post('/api/chef/requests/1/handover').set(authed(basic.token))).status, 403);
   });
 
-  it('prepares PENDING orders through to READY_FOR_DELIVERY with chefId', async () => {
+  it('accepts PENDING to PREPARING, then hands over to READY_FOR_DELIVERY for delivery', async () => {
     const orderId = await pendingOrderFixture(`ch${Date.now().toString(36)}c`);
     const chef = await loginDirect(`ch${Date.now().toString(36)}d`, 'CHEF');
+    const other = await loginDirect(`ch${Date.now().toString(36)}e`, 'CHEF');
+    const courier = await loginDirect(`ch${Date.now().toString(36)}f`, 'DELIVERY');
     const h = authed(chef.token);
+    const dh = authed(courier.token);
 
     const requests = await request(app).get('/api/chef/requests').set(h);
     const found = requests.body.data.items.filter((o) => o.id === orderId)[0];
     assert.ok(found);
+    assert.equal(found.status, 'PENDING');
     assert.equal(found.items[0].quantity, 2);
     assert.equal(found.chefId, null);
 
+    // Delivery cannot see the order before the hand-over.
+    const beforeCurrent = await request(app).get('/api/delivery/orders/current').set(dh);
+    assert.ok(!beforeCurrent.body.data.items.some((o) => o.id === orderId));
+
+    // Accept step: PENDING → PREPARING (user sees preparing).
     const prepared = await request(app).post(`/api/chef/requests/${orderId}/prepare`).set(h);
     assert.equal(prepared.status, 200);
-    assert.equal(prepared.body.data.order.status, 'READY_FOR_DELIVERY');
-    assert.equal(prepared.body.data.order.statusLabel, 'Ready for Delivery');
+    assert.equal(prepared.body.data.order.status, 'PREPARING');
     assert.equal(prepared.body.data.order.chefId, chef.user.id);
     assert.ok(prepared.body.data.order.preparedAt);
+
+    // Still in the kitchen queue as PREPARING, still hidden from delivery,
+    // and not yet in chef history.
+    const preparing = await request(app).get('/api/chef/requests').set(h);
+    const still = preparing.body.data.items.filter((o) => o.id === orderId)[0];
+    assert.ok(still && still.status === 'PREPARING');
+    const hidden = await request(app).get('/api/delivery/orders/current').set(dh);
+    assert.ok(!hidden.body.data.items.some((o) => o.id === orderId));
+    const preHistory = await request(app).get('/api/chef/history').set(h);
+    assert.ok(!preHistory.body.data.items.some((o) => o.id === orderId));
+
+    // Only the accepting chef can hand over; missing/invalid ids keep codes.
+    assert.equal((await request(app).post(`/api/chef/requests/${orderId}/handover`).set(authed(other.token))).status, 409);
+    assert.equal((await request(app).post('/api/chef/requests/999999999/handover').set(h)).status, 404);
+    assert.equal((await request(app).post('/api/chef/requests/abc/handover').set(h)).status, 400);
+
+    // Hand-over step: PREPARING → READY_FOR_DELIVERY (user display unchanged).
+    const handed = await request(app).post(`/api/chef/requests/${orderId}/handover`).set(h);
+    assert.equal(handed.status, 200);
+    assert.equal(handed.body.data.order.status, 'READY_FOR_DELIVERY');
+    assert.equal(handed.body.data.order.statusLabel, 'Ready for Delivery');
 
     const after = await request(app).get('/api/chef/requests').set(h);
     assert.ok(!after.body.data.items.some((o) => o.id === orderId));
@@ -67,8 +97,15 @@ describe('chef workflow', () => {
     const history = await request(app).get('/api/chef/history').set(h);
     assert.ok(history.body.data.items.some((o) => o.id === orderId && o.chefId === chef.user.id));
 
+    // Now delivery sees it with an Accept operation.
+    const current = await request(app).get('/api/delivery/orders/current').set(dh);
+    const forDelivery = current.body.data.items.filter((o) => o.id === orderId)[0];
+    assert.ok(forDelivery);
+    assert.deepEqual(forDelivery.operations, [{ method: 'POST', href: `/api/delivery/orders/${orderId}/accept`, label: 'Accept' }]);
+
     const again = await request(app).post(`/api/chef/requests/${orderId}/prepare`).set(h);
     assert.equal(again.status, 409);
+    assert.equal((await request(app).post(`/api/chef/requests/${orderId}/handover`).set(h)).status, 409);
     assert.equal((await request(app).post('/api/chef/requests/999999999/prepare').set(h)).status, 404);
     assert.equal((await request(app).post('/api/chef/requests/abc/prepare').set(h)).status, 400);
   });

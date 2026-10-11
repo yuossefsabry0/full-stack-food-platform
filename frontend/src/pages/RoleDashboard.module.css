@@ -1,0 +1,450 @@
+/* Shared staff dashboard theme (Chef / Delivery).
+ * Presentational only: sidebar + tabs + order cards matching the design concept.
+ * All API calls, routes, payloads and status flows are unchanged. */
+
+.shell {
+  display: flex;
+  align-items: stretch;
+  min-height: 100vh;
+  min-height: 100dvh;
+  background: #f4ede5;
+  /* Reset the site-wide 0.9 zoom (global.css) inside staff dashboards only:
+   * vh units resolve to true viewport px again, so the sidebar spans the
+   * exact full height with no white strip beneath. Internal proportions are
+   * unchanged; no logic/routes affected. */
+  zoom: 1;
+  overflow-x: clip;
+}
+
+/* Full-bleed fixed sidebar: pinned to the viewport edges (top/left/bottom)
+ * with height derived from the pins (no vh lengths, which mis-size under
+ * zoom) so it always spans the exact full page height with no gaps beneath.
+ * Removed from flex flow; .main offsets. Width unchanged (208px). */
+.sidebar {
+  width: 208px;
+  flex-shrink: 0;
+  background: #131313;
+  color: #fff;
+  display: flex;
+  flex-direction: column;
+  padding: 18px 12px;
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  height: auto;
+  min-height: 0;
+  z-index: 40;
+  overflow-y: auto;
+  overflow-x: hidden;
+  margin: 0;
+  border: 0;
+  border-radius: 0;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 800;
+  font-size: 14px;
+  padding: 4px 10px 16px;
+}
+
+.brandMark {
+  width: 26px;
+  height: 26px;
+  border-radius: 8px;
+  background: #ea580c;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.nav {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+}
+
+.navLink {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  color: #d6d3d1;
+  text-decoration: none;
+  font-size: 13.5px;
+  font-weight: 600;
+}
+
+.navLink:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+  text-decoration: none;
+}
+
+.navLinkActive {
+  background: #ea580c;
+  color: #fff;
+}
+
+.logoutBtn {
+  margin-top: 12px;
+  width: 100%;
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  color: #fff;
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: 13.5px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  justify-content: flex-start;
+}
+
+.logoutBtn:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.main {
+  flex: 1;
+  min-width: 0;
+  margin-left: 208px;
+  padding: 22px 26px 48px;
+  overflow-x: clip;
+}
+
+.topbar {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 14px;
+}
+
+.title {
+  margin: 0;
+  font-size: 22px;
+  color: #1c1917;
+  letter-spacing: -0.01em;
+}
+
+.sub {
+  margin: 4px 0 0;
+  font-size: 13px;
+  color: #78716c;
+}
+
+.userChip {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.userName {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #44403c;
+  background: #fff;
+  border: 1px solid #e7e5e4;
+  border-radius: 999px;
+  padding: 6px 12px;
+}
+
+.topLogout {
+  background: #131313;
+  color: #fff;
+  border: 1px solid #131313;
+  border-radius: 999px;
+  padding: 7px 16px;
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.topLogout:hover {
+  background: #000;
+}
+
+.tabs {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin: 12px 0 16px;
+}
+
+.tab {
+  border: 1px solid #e7e5e4;
+  background: #fff;
+  color: #57534e;
+  border-radius: 999px;
+  padding: 7px 14px;
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.tabActive {
+  background: #131313;
+  border-color: #131313;
+  color: #fff;
+}
+
+.columns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
+  align-items: start;
+}
+
+@media (max-width: 980px) {
+  .columns {
+    grid-template-columns: 1fr;
+  }
+}
+
+.columnTitle {
+  margin: 0 0 10px;
+  font-size: 13px;
+  font-weight: 800;
+  color: #57534e;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.countBadge {
+  background: #fff;
+  border: 1px solid #e7e5e4;
+  border-radius: 999px;
+  font-size: 11.5px;
+  padding: 1px 9px;
+  color: #57534e;
+}
+
+.orderCard {
+  background: #fff;
+  border: 1px solid #f0e7da;
+  border-radius: 16px;
+  padding: 16px;
+  margin-bottom: 14px;
+  box-shadow: 0 8px 24px rgba(28, 25, 23, 0.06);
+}
+
+.orderHead {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.orderId {
+  margin: 0;
+  font-size: 14.5px;
+  color: #1c1917;
+}
+
+.orderMeta {
+  margin: 2px 0 0;
+  font-size: 12px;
+  color: #78716c;
+}
+
+.pill {
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  border-radius: 999px;
+  padding: 4px 10px;
+  white-space: nowrap;
+}
+
+.pillNew {
+  background: #fff7ed;
+  color: #c2410c;
+  border: 1px solid #fed7aa;
+}
+
+.pillPreparing {
+  background: #fefce8;
+  color: #a16207;
+  border: 1px solid #fde68a;
+}
+
+.pillReady {
+  background: #f0fdf4;
+  color: #15803d;
+  border: 1px solid #bbf7d0;
+}
+
+.pillWay {
+  background: #eff6ff;
+  color: #1d4ed8;
+  border: 1px solid #bfdbfe;
+}
+
+.itemList {
+  margin: 10px 0 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  font-size: 13px;
+  color: #44403c;
+}
+
+.itemRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #ea580c;
+  flex-shrink: 0;
+}
+
+.note {
+  margin-top: 10px;
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+  color: #92400e;
+  font-size: 12px;
+  border-radius: 10px;
+  padding: 8px 10px;
+}
+
+.customerBox {
+  margin-top: 10px;
+  background: #fafaf9;
+  border: 1px solid #e7e5e4;
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: 12.5px;
+  color: #57534e;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.totalRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px dashed #e7e5e4;
+  font-size: 13px;
+}
+
+.totalStrong {
+  font-size: 14px;
+  color: #1c1917;
+}
+
+.receiveBtn {
+  margin-top: 12px;
+  width: 100%;
+  background: linear-gradient(180deg, #f97316, #ea580c);
+  border: 1px solid #ea580c;
+  color: #fff;
+  border-radius: 12px;
+  padding: 11px 14px;
+  font-size: 13.5px;
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: 0 8px 18px rgba(234, 88, 12, 0.3);
+}
+
+.receiveBtn:hover:not(:disabled) {
+  background: #c2410c;
+}
+
+.receiveBtn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+.handoverBtn {
+  margin-top: 12px;
+  width: 100%;
+  background: linear-gradient(180deg, #22c55e, #16a34a);
+  border: 1px solid #16a34a;
+  color: #fff;
+  border-radius: 12px;
+  padding: 11px 14px;
+  font-size: 13.5px;
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: 0 8px 18px rgba(22, 163, 74, 0.3);
+}
+
+.handoverBtn:hover:not(:disabled) {
+  background: #15803d;
+}
+
+.handoverBtn:disabled {
+  opacity: 0.65;
+  cursor: default;
+  box-shadow: none;
+}
+
+.emptyCard {
+  background: #fff;
+  border: 1px dashed #d6d3d1;
+  border-radius: 16px;
+  padding: 22px;
+  text-align: center;
+  color: #78716c;
+  font-size: 13px;
+}
+
+.error {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #b91c1c;
+  border-radius: 12px;
+  padding: 10px 14px;
+  font-size: 13px;
+  margin: 0 0 12px;
+}
+
+@media (max-width: 760px) {
+  .shell {
+    flex-direction: column;
+  }
+  .sidebar {
+    width: 100%;
+    height: auto;
+    min-height: 0;
+    position: static;
+    overflow: visible;
+    flex-direction: column;
+  }
+  .nav {
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+  .main {
+    margin-left: 0;
+    padding: 16px 14px 40px;
+  }
+  .topbar {
+    flex-direction: column;
+  }
+}

@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { api } from '../api/client.js';
-import { ADMIN_LINKS, RoleHeader } from '../components/RoleHeader.jsx';
+import AdminShell from '../components/AdminShell.jsx';
+import styles from './AdminDashboard.module.css';
 
 function listOf(res) {
   const d = res?.data;
@@ -49,25 +50,9 @@ export default function AdminUsers() {
   }, [role]);
 
   return (
-    <>
-      <RoleHeader title="Joo Food · Admin" links={ADMIN_LINKS} />
-      <div className="page">
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
-          <h2 style={{ margin: 0 }}>Users</h2>
-          <span
-            style={{
-              display: 'inline-block',
-              background: '#f8fafc',
-              border: '1px solid #e2e8f0',
-              borderRadius: 999,
-              padding: '4px 12px',
-              fontSize: 13,
-              fontWeight: 600,
-              color: '#1f2937',
-            }}
-          >
-            Total: {users.length}
-          </span>
+    <AdminShell active="users" title="Users" sub={`Browse customer accounts — total ${users.length}.`}>
+        <div className={styles.toolbar} role="toolbar" aria-label="User summary">
+          <span className={`${styles.pill} ${styles.pillNeutral}`}>Total: {users.length}</span>
         </div>
         <form
           onSubmit={(e) => e.preventDefault()}
@@ -92,10 +77,10 @@ export default function AdminUsers() {
         </form>
         {error && <p className="error" role="alert">{error}</p>}
         {copied && <p className="muted" role="status">Copied ID {copied}</p>}
-        <div className="card" style={{ overflowX: 'auto', marginTop: 12 }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14 }}>
+        <div className={styles.tableCard}>
+          <table className={styles.dataTable}>
             <thead>
-              <tr style={{ textAlign: 'left', borderBottom: '1px solid #e5e7eb' }}>
+              <tr>
                 <th>ID</th>
                 <th>Name</th>
                 <th>Username</th>
@@ -105,7 +90,7 @@ export default function AdminUsers() {
             </thead>
             <tbody>
               {users.map((u, i) => (
-                <tr key={u.id || i} style={{ borderBottom: '1px solid #f3f4f6' }}>
+                <tr key={u.id || i}>
                   <td>
                     {u.id ?? '—'}{' '}
                     {u.id != null && (
@@ -123,7 +108,14 @@ export default function AdminUsers() {
                       </button>
                     )}
                   </td>
-                  <td>{u.name}</td>
+                  <td>
+                    <span className={styles.cellName}>
+                      <span className={styles.miniAvatar} aria-hidden="true">
+                        {(u.name || u.username || '?').charAt(0).toUpperCase()}
+                      </span>
+                      {u.name}
+                    </span>
+                  </td>
                   <td>{u.username}</td>
                   <td>{u.publicId || u.userCode || u.code || '—'}</td>
                   <td>{u.email}</td>
@@ -133,7 +125,6 @@ export default function AdminUsers() {
           </table>
           {users.length === 0 && !error && <p className="muted">No users found. Try clearing the role filter.</p>}
         </div>
-      </div>
-    </>
+    </AdminShell>
   );
 }

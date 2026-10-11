@@ -206,6 +206,10 @@
           "request": { "method": "POST", "url": "{{baseUrl}}/api/chef/requests/{{orderId}}/prepare" }
         },
         {
+          "name": "Hand Over to Delivery",
+          "request": { "method": "POST", "url": "{{baseUrl}}/api/chef/requests/{{orderId}}/handover" }
+        },
+        {
           "name": "Previous Orders",
           "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/chef/history?page=1&limit=10", "host": ["{{baseUrl}}"], "path": ["api", "chef", "history"], "query": [{ "key": "page", "value": "1" }, { "key": "limit", "value": "10" }] } }
         }

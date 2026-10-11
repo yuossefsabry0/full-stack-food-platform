@@ -186,6 +186,7 @@ export const api = {
   // chef (CHEF)
   chefRequests: () => apiFetch('/chef/requests', { auth: true }),
   chefPrepare: (id) => apiFetch(`/chef/requests/${id}/prepare`, { method: 'POST', auth: true }),
+  chefHandover: (id) => apiFetch(`/chef/requests/${id}/handover`, { method: 'POST', auth: true }),
   chefHistory: (params = {}) => {
     const qs = new URLSearchParams(
       Object.entries(params).filter(([, v]) => v !== undefined && v !== '')

@@ -95,7 +95,7 @@ describe('chef prepare atomic claim (issue 3)', () => {
     const seen = [];
     prisma.order = {
       findUnique: async (args) => {
-        if (args.include) return { id: 5, status: 'READY_FOR_DELIVERY', chefId: 7, items: [] };
+        if (args.include) return { id: 5, status: 'PREPARING', chefId: 7, items: [] };
         return { id: 5, status: 'PENDING' };
       },
       updateMany: async (args) => { seen.push(args); return { count: 1 }; },
@@ -103,7 +103,7 @@ describe('chef prepare atomic claim (issue 3)', () => {
     const { prepareOrder } = require('../../src/services/chef.service');
     const out = await prepareOrder(7, 5);
     assert.deepEqual(seen[0].where, { id: 5, status: 'PENDING' });
-    assert.equal(out.status, 'READY_FOR_DELIVERY');
+    assert.equal(out.status, 'PREPARING');
   });
 
   it('maps a lost race to ORDER_NOT_PREPARABLE 409', async () => {
@@ -113,6 +113,45 @@ describe('chef prepare atomic claim (issue 3)', () => {
     };
     const { prepareOrder } = require('../../src/services/chef.service');
     await assert.rejects(() => prepareOrder(7, 5), (e) => e.code === 'ORDER_NOT_PREPARABLE' && e.statusCode === 409);
+  });
+});
+
+describe('chef hand-over atomic transition', () => {
+  let origOrder;
+  beforeEach(() => { origOrder = prisma.order; });
+  afterEach(() => { prisma.order = origOrder; });
+
+  it('hands over only own PREPARING orders to READY_FOR_DELIVERY', async () => {
+    const seen = [];
+    prisma.order = {
+      findUnique: async (args) => {
+        if (args.include) return { id: 5, status: 'READY_FOR_DELIVERY', chefId: 7, items: [] };
+        return { id: 5, status: 'PREPARING', chefId: 7 };
+      },
+      updateMany: async (args) => { seen.push(args); return { count: 1 }; },
+    };
+    const { handoverOrder } = require('../../src/services/chef.service');
+    const out = await handoverOrder(7, 5);
+    assert.deepEqual(seen[0].where, { id: 5, status: 'PREPARING', chefId: 7 });
+    assert.equal(out.status, 'READY_FOR_DELIVERY');
+  });
+
+  it('maps a lost/ineligible hand-over to ORDER_NOT_HANDABLE 409', async () => {
+    prisma.order = {
+      findUnique: async () => ({ id: 5, status: 'PREPARING', chefId: 7 }),
+      updateMany: async () => ({ count: 0 }),
+    };
+    const { handoverOrder } = require('../../src/services/chef.service');
+    await assert.rejects(() => handoverOrder(7, 5), (e) => e.code === 'ORDER_NOT_HANDABLE' && e.statusCode === 409);
+  });
+
+  it('returns 404 for a missing order', async () => {
+    prisma.order = {
+      findUnique: async () => null,
+      updateMany: async () => ({ count: 0 }),
+    };
+    const { handoverOrder } = require('../../src/services/chef.service');
+    await assert.rejects(() => handoverOrder(7, 5), (e) => e.code === 'ORDER_NOT_FOUND' && e.statusCode === 404);
   });
 });
 

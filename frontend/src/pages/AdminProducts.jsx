@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { api } from '../api/client.js';
-import { ADMIN_LINKS, RoleHeader } from '../components/RoleHeader.jsx';
+import AdminShell from '../components/AdminShell.jsx';
+import styles from './AdminDashboard.module.css';
 
 function listOf(res) {
   const d = res?.data;
@@ -88,13 +89,10 @@ export default function AdminProducts() {
   }
 
   return (
-    <>
-      <RoleHeader title="Joo Food · Admin" links={ADMIN_LINKS} />
-      <div className="page">
-        <h2>Products</h2>
+    <AdminShell active="products" title="Products" sub={`Menu catalog — total ${products.length}.`}>
         {error && <p className="error">{error}</p>}
-        <div className="card" style={{ marginBottom: 16 }}>
-          <h3>Add product</h3>
+        <div className={styles.tableCard} style={{ marginBottom: 16 }}>
+          <h3 style={{ margin: '0 0 8px' }}>Add product</h3>
           <form onSubmit={onAdd}>
             <label className="field">Name<input className="input" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required /></label>
             <label className="field">Price<input className="input" type="number" step="0.01" value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} required /></label>
@@ -104,7 +102,7 @@ export default function AdminProducts() {
           </form>
         </div>
         {products.map((p) => (
-          <div className="card" key={p.id} style={{ marginBottom: 10 }}>
+          <div className={styles.tableCard} key={p.id} style={{ marginBottom: 12 }}>
             <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
               {(p.imageUrl || p.image) ? (
                 <img
@@ -121,18 +119,7 @@ export default function AdminProducts() {
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
                   <strong style={{ fontSize: 15 }}>{p.name}</strong>
-                  <span
-                    style={{
-                      display: 'inline-block',
-                      background: '#f8fafc',
-                      border: '1px solid #e2e8f0',
-                      borderRadius: 999,
-                      padding: '4px 12px',
-                      fontSize: 13,
-                      fontWeight: 600,
-                      color: '#1f2937',
-                    }}
-                  >
+                  <span className={`${styles.pill} ${p.isActive ? styles.pillActive : styles.pillInactive}`}>
                     {p.isActive ? 'Active' : 'Inactive'}
                   </span>
                 </div>
@@ -183,7 +170,6 @@ export default function AdminProducts() {
             )}
           </div>
         ))}
-      </div>
-    </>
+    </AdminShell>
   );
 }

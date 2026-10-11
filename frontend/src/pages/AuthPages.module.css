@@ -3,16 +3,23 @@
  * the real project form on the right. All fields, payloads, and navigation
  * targets are unchanged. */
 
+/* Single gutter source: the global `.page` wrapper already supplies fluid
+ * side padding, so the stage centers with viewport-relative width instead of
+ * adding a second padding layer (which shrank the card and left uneven gaps). */
 .stage {
-  width: 100%;
-  max-width: 880px;
+  width: min(1200px, 100% - 24px);
   margin: 0 auto;
-  padding: 40px clamp(12px, 3vw, 40px) 64px;
+  padding: 24px 0 32px;
 }
 
+/* Exact halves: image panel fills the entire left half, the form fills the
+ * entire right half. No forced minimum height — the grid stretches both
+ * halves to the taller column, so no empty space is ever manufactured
+ * (which previously forced scrolling on shorter forms). Desktop only;
+ * mobile stacks panel above the form. */
 .card {
   display: grid;
-  grid-template-columns: 1fr 1.1fr;
+  grid-template-columns: 1fr 1fr;
   background: #fff;
   border: 1px solid #f0e7da;
   border-radius: 28px;
@@ -29,10 +36,10 @@
 .panel {
   background: linear-gradient(160deg, #f97316 0%, #ea580c 55%, #c2410c 100%);
   color: #fff;
-  padding: 36px 30px;
+  padding: 32px 36px;
   display: flex;
   flex-direction: column;
-  justify-content: center;
+  justify-content: flex-start;
   gap: 10px;
   position: relative;
   overflow: hidden;
@@ -82,13 +89,16 @@
 
 .panelArt {
   display: flex;
-  gap: 10px;
-  margin-top: 16px;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: auto;
+  padding-top: 24px;
 }
 
 .panelArt img {
-  width: 64px;
-  height: 64px;
+  width: 84px;
+  height: 84px;
+  flex-shrink: 0;
   border-radius: 50%;
   object-fit: cover;
   border: 3px solid rgba(255, 255, 255, 0.55);
@@ -96,7 +106,10 @@
 }
 
 .formSide {
-  padding: 36px 32px;
+  padding: 32px 36px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 }
 
 @media (max-width: 760px) {
@@ -146,6 +159,38 @@
   margin: 12px 0 0;
 }
 
+/* Compact variant, applied only on the tall Create-account form: tightens
+ * that page's vertical rhythm (fields, art, margins) so it fits without
+ * scrolling. Scoped under `.compact`, so Login/Forgot are untouched. */
+.compact .formSide {
+  padding: 24px 32px;
+}
+
+.compact .panel {
+  padding: 28px 32px;
+}
+
+.compact :global(.field) {
+  margin: 6px 0;
+}
+
+.compact .panelArt {
+  padding-top: 16px;
+}
+
+.compact .panelArt img {
+  width: 64px;
+  height: 64px;
+}
+
+.compact .terms {
+  margin: 8px 0 0;
+}
+
+.compact .authSwitch {
+  margin: 10px 0 0;
+}
+
 .terms input {
   margin-top: 3px;
   accent-color: #ea580c;
@@ -176,12 +221,12 @@
   text-decoration: none;
 }
 
-/* Centered variant (Forgot password): peach backdrop with floating dishes. */
+/* Centered variant (currently unused — Forgot password shares the split
+ * card above): same single-gutter treatment for consistency. */
 .centerStage {
-  width: 100%;
-  max-width: 560px;
+  width: min(560px, 100% - 24px);
   margin: 0 auto;
-  padding: 48px clamp(12px, 3vw, 40px) 64px;
+  padding: 48px 0 64px;
   position: relative;
 }
 
