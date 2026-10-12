@@ -86,6 +86,12 @@ export default function DeliveryCurrent() {
               {o.address.name}, {o.address.address}, Bldg {o.address.buildingNumber},
               Apt {o.address.apartmentNumber}, {o.address.streetName} · {o.address.phoneNumber}
             </strong>
+            {o.address.otherDetails && (
+              <div style={{ marginTop: 4 }}>
+                <span className="muted">Other Details: </span>
+                <strong>{o.address.otherDetails}</strong>
+              </div>
+            )}
           </div>
         )}
         {Array.isArray(o.items) && o.items.length > 0 && (
@@ -147,8 +153,9 @@ export default function DeliveryCurrent() {
         </ul>
         {o.address && (
           <div className={dash.customerBox}>
-            <span>👤 Customer: <strong>{o.address.name}</strong></span>
-            <span>📍 {o.address.address}, Bldg {o.address.buildingNumber}, Apt {o.address.apartmentNumber} · {o.address.phoneNumber}</span>
+            <span>Customer: <strong>{o.address.name}</strong></span>
+            <span>{o.address.address}, Bldg {o.address.buildingNumber}, Apt {o.address.apartmentNumber} · {o.address.phoneNumber}</span>
+            {o.address.otherDetails && <span>Other Details: <strong>{o.address.otherDetails}</strong></span>}
           </div>
         )}
         <div className={dash.totalRow}>
@@ -157,7 +164,7 @@ export default function DeliveryCurrent() {
         </div>
         {orderDetails(o)}
         <button className={dash.receiveBtn} onClick={() => accept(o.id)} disabled={busyId === o.id}>
-          {busyId === o.id ? 'Accepting…' : '🛵 Receive order'}
+          {busyId === o.id ? 'Accepting…' : 'Receive order'}
         </button>
       </article>
     );
@@ -180,8 +187,9 @@ export default function DeliveryCurrent() {
         </ul>
         {o.address && (
           <div className={dash.customerBox}>
-            <span>👤 Customer: <strong>{o.address.name}</strong></span>
-            <span>📍 {o.address.address}, Bldg {o.address.buildingNumber}, Apt {o.address.apartmentNumber} · {o.address.phoneNumber}</span>
+            <span>Customer: <strong>{o.address.name}</strong></span>
+            <span>{o.address.address}, Bldg {o.address.buildingNumber}, Apt {o.address.apartmentNumber} · {o.address.phoneNumber}</span>
+            {o.address.otherDetails && <span>Other Details: <strong>{o.address.otherDetails}</strong></span>}
           </div>
         )}
         <div className={dash.totalRow}>
@@ -232,14 +240,14 @@ export default function DeliveryCurrent() {
         <div className={dash.columns}>
           {showReady && (
             <section aria-label="Ready to pick up">
-              <h2 className={dash.columnTitle}>📦 Ready to pick up <span className={dash.countBadge}>{orders.length}</span></h2>
+              <h2 className={dash.columnTitle}>Ready to pick up <span className={dash.countBadge}>{orders.length}</span></h2>
               {orders.length === 0 && <div className={dash.emptyCard}>Nothing ready right now.</div>}
               {orders.map(renderReadyCard)}
             </section>
           )}
           {showWay && (
             <section aria-label="On the way">
-              <h2 className={dash.columnTitle}>🛵 On the way <span className={dash.countBadge}>{mine.length}</span></h2>
+              <h2 className={dash.columnTitle}>On the way <span className={dash.countBadge}>{mine.length}</span></h2>
               {mine.length === 0 && <div className={dash.emptyCard}>No active delivery.</div>}
               {mine.map(renderWayCard)}
             </section>

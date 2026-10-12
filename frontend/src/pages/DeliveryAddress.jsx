@@ -4,7 +4,8 @@ import { api } from '../api/client.js';
 import sf from './Storefront.module.css';
 
 // Delivery Address route: posts the full address to POST /orders/checkout
-// (all six fields required by backend Zod validation).
+// (all six fields required by backend Zod validation; otherDetails below
+// the phone number is optional and sent only when filled in).
 const FIELDS = [
   ['name', 'Recipient name'],
   ['address', 'Address'],
@@ -23,8 +24,10 @@ export default function DeliveryAddress() {
     apartmentNumber: '',
     streetName: '',
     phoneNumber: '',
+    otherDetails: '',
   });
   const [error, setError] = useState('');
+  const [fieldErrors, setFieldErrors] = useState({});
   const [eligibility, setEligibility] = useState(null);
 
   useEffect(() => {
@@ -38,20 +41,55 @@ export default function DeliveryAddress() {
 
   function set(key, value) {
     setForm((f) => ({ ...f, [key]: value }));
+    // Clear that field's own message as soon as the user edits it again.
+    setFieldErrors((prev) => {
+      if (!prev[key]) return prev;
+      const next = { ...prev };
+      delete next[key];
+      return next;
+    });
+  }
+
+  // Backend VALIDATION_ERROR responses carry per-field details
+  // ({ field, message }); surface each beneath its own input instead of a
+  // single generic line. Returns true when field messages were shown.
+  function applyFieldErrors(err) {
+    const details = err?.payload?.errors;
+    if (!Array.isArray(details) || details.length === 0) return false;
+    const mapped = {};
+    for (const item of details) {
+      if (typeof item === 'string') continue;
+      const field = item?.field;
+      const message = item?.message;
+      if (typeof field === 'string' && field && typeof message === 'string' && message && mapped[field] === undefined) {
+        mapped[field] = message;
+      }
+    }
+    if (Object.keys(mapped).length === 0) return false;
+    setFieldErrors(mapped);
+    return true;
   }
 
   async function onSubmit(e) {
     e.preventDefault();
     setError('');
+    setFieldErrors({});
     try {
-      await api.checkout(form);
+      // otherDetails is optional: omit it when blank so the payload stays
+      // exactly the six required fields as before.
+      const payload = { ...form };
+      if (!String(payload.otherDetails || '').trim()) delete payload.otherDetails;
+      else payload.otherDetails = String(payload.otherDetails).trim().slice(0, 500);
+      await api.checkout(payload);
       // Refresh the bell: backend stored an order-placed notification.
       try {
         window.dispatchEvent(new CustomEvent('fp:notifications-refresh'));
       } catch { /* ignore */ }
       navigate('/orders');
     } catch (err) {
-      setError(err.message);
+      // Prefer the field-specific message beneath its input; the generic
+      // line below stays as the fallback for non-field errors.
+      if (!applyFieldErrors(err)) setError(err.message);
     }
   }
 
@@ -73,9 +111,22 @@ export default function DeliveryAddress() {
             {FIELDS.map(([key, label]) => (
               <label className="field" key={key}>
                 {label}
-                <input className="input" value={form[key]} onChange={(e) => set(key, e.target.value)} required />
+                <input className="input" value={form[key]} onChange={(e) => set(key, e.target.value)} required={key !== 'otherDetails'} />
+                {fieldErrors[key] && <span className="error" role="alert">{fieldErrors[key]}</span>}
               </label>
             ))}
+            <label className="field">
+              Other Details (optional)
+              <textarea
+                className="input"
+                value={form.otherDetails}
+                onChange={(e) => set('otherDetails', e.target.value)}
+                rows={3}
+                maxLength={500}
+                placeholder="Anything else the chef or delivery person should know"
+              />
+              {fieldErrors.otherDetails && <span className="error" role="alert">{fieldErrors.otherDetails}</span>}
+            </label>
             {error && <p className="error" role="alert">{error}</p>}
             {canCheckout === false && (
               <p className="error">

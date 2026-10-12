@@ -198,6 +198,9 @@ model Order {
   apartmentNumber String @db.VarChar(40)
   streetName      String @db.VarChar(150)
   phoneNumber     String @db.VarChar(40)
+  // Optional free-text note from the customer (checkout "Other Details"
+  // field, below the phone number). Shown to chef + delivery with the order.
+  otherDetails    String? @db.VarChar(500)
   chefId     Int?
   chef       User?    @relation("PreparedOrders", fields: [chefId], references: [id], onDelete: SetNull)
   preparedAt DateTime?

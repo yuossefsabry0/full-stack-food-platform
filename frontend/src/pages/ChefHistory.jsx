@@ -70,6 +70,12 @@ export default function ChefHistory() {
               {o.address.name}, {o.address.address}, Bldg {o.address.buildingNumber},
               Apt {o.address.apartmentNumber}, {o.address.streetName} · {o.address.phoneNumber}
             </strong>
+            {o.address.otherDetails && (
+              <div style={{ marginTop: 4 }}>
+                <span className="muted">Other Details: </span>
+                <strong>{o.address.otherDetails}</strong>
+              </div>
+            )}
           </div>
         )}
       </>
@@ -103,7 +109,7 @@ export default function ChefHistory() {
         {error && <p className={dash.error} role="alert">{error}</p>}
         <div className={dash.columns} style={{ gridTemplateColumns: '1fr 1fr' }}>
           <section aria-label="Prepared orders" style={{ gridColumn: '1 / -1' }}>
-            <h2 className={dash.columnTitle}>📦 History <span className={dash.countBadge}>{orders.length}</span></h2>
+            <h2 className={dash.columnTitle}>History <span className={dash.countBadge}>{orders.length}</span></h2>
             {orders.length === 0 && !error && <div className={dash.emptyCard}>No prepared orders yet.</div>}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 14 }}>
               {orders.map((o) => (

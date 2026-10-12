@@ -95,6 +95,12 @@ export default function ChefRequests() {
               {o.address.name}, {o.address.address}, Bldg {o.address.buildingNumber},
               Apt {o.address.apartmentNumber}, {o.address.streetName} · {o.address.phoneNumber}
             </strong>
+            {o.address.otherDetails && (
+              <div style={{ marginTop: 4 }}>
+                <span className="muted">Other Details: </span>
+                <strong>{o.address.otherDetails}</strong>
+              </div>
+            )}
           </div>
         )}
         {Array.isArray(o.items) && o.items.length > 0 && (
@@ -163,7 +169,7 @@ export default function ChefRequests() {
           onClick={() => prepare(o.id)}
           disabled={busyId === o.id}
         >
-          {busyId === o.id ? 'Receiving…' : '🧡 Receive order'}
+          {busyId === o.id ? 'Receiving…' : 'Receive order'}
         </button>
       </article>
     );
@@ -268,14 +274,14 @@ export default function ChefRequests() {
         <div className={dash.columns}>
           {showNew && (
             <section aria-label="New orders">
-              <h2 className={dash.columnTitle}>🟠 New orders <span className={dash.countBadge}>{newOrders.length}</span></h2>
+              <h2 className={dash.columnTitle}>New orders <span className={dash.countBadge}>{newOrders.length}</span></h2>
               {newOrders.length === 0 && <div className={dash.emptyCard}>No pending orders.</div>}
               {newOrders.map(renderNewCard)}
             </section>
           )}
           {showKitchen && (
             <section aria-label="In the kitchen">
-              <h2 className={dash.columnTitle}>👨‍🍳 In the kitchen <span className={dash.countBadge}>{preparingOrders.length}</span></h2>
+              <h2 className={dash.columnTitle}>In the kitchen <span className={dash.countBadge}>{preparingOrders.length}</span></h2>
               {preparingOrders.length === 0 && <div className={dash.emptyCard}>Nothing preparing right now.</div>}
               {preparingOrders.map(renderKitchenCard)}
             </section>
@@ -283,7 +289,7 @@ export default function ChefRequests() {
         </div>
         {tab === 'all' && (
           <section aria-label="Handed over to delivery" style={{ marginTop: 4 }}>
-            <h2 className={dash.columnTitle}>🛵 Handed over to delivery <span className={dash.countBadge}>{handedOrders.length}</span></h2>
+            <h2 className={dash.columnTitle}>Handed over to delivery <span className={dash.countBadge}>{handedOrders.length}</span></h2>
             {handedOrders.length === 0 && <div className={dash.emptyCard}>Nothing awaiting pickup.</div>}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 14 }}>
               {handedOrders.map(renderHandedCard)}

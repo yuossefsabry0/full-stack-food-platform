@@ -29,19 +29,23 @@ function toDeliveryOrderShape(order, items, viewerDeliveryId) {
 // Address snapshot and per-line prices come from the same order/item fields
 // as the Current shape (toOrderShape); createdAt added as well.
 function toDeliveryHistoryShape(order, items) {
+  // otherDetails appended only when present (same additive rule as
+  // toOrderShape), so existing rows keep their exact shape.
+  const address = {
+    name: order.recipientName,
+    address: order.address,
+    buildingNumber: order.buildingNumber,
+    apartmentNumber: order.apartmentNumber,
+    streetName: order.streetName,
+    phoneNumber: order.phoneNumber,
+  };
+  if (order.otherDetails) address.otherDetails = order.otherDetails;
   return {
     id: order.id,
     status: order.status,
     statusLabel: orderStatusLabel(order.status),
     customerName: order.recipientName,
-    address: {
-      name: order.recipientName,
-      address: order.address,
-      buildingNumber: order.buildingNumber,
-      apartmentNumber: order.apartmentNumber,
-      streetName: order.streetName,
-      phoneNumber: order.phoneNumber,
-    },
+    address,
     products: items.map((item) => ({
       productName: item.productName,
       quantity: item.quantity,

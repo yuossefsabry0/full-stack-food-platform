@@ -44,6 +44,12 @@ export default function DeliveryPrevious() {
               <strong>{[o.address.address, o.address.buildingNumber, o.address.apartmentNumber, o.address.streetName].filter(Boolean).join(', ') || '—'}</strong>
             </div>
           )}
+          {o.address && o.address.otherDetails && (
+            <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}>
+              <span className="muted">Other Details</span>
+              <strong>{o.address.otherDetails}</strong>
+            </div>
+          )}
           {o.createdAt && (
             <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}>
               <span className="muted">Placed</span>
@@ -103,7 +109,7 @@ export default function DeliveryPrevious() {
         </div>
         {error && <p className={dash.error} role="alert">{error}</p>}
         <section aria-label="Previous deliveries">
-          <h2 className={dash.columnTitle}>📦 History <span className={dash.countBadge}>{orders.length}</span></h2>
+          <h2 className={dash.columnTitle}>History <span className={dash.countBadge}>{orders.length}</span></h2>
           {orders.length === 0 && !error && <div className={dash.emptyCard}>No delivered orders yet.</div>}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 14 }}>
             {orders.map((o) => (

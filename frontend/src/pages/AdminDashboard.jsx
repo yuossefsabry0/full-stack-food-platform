@@ -7,13 +7,13 @@ import styles from './AdminDashboard.module.css';
 // Admin entry view: grid of cards mapped ONLY to existing admin routes.
 // Distinct from the BASIC /home route; ADMIN never sees the BASIC navbar.
 const SECTIONS = [
-  { to: '/admin/users', title: 'Users', text: 'Browse customer accounts (name, username, code, email).', icon: '👥' },
-  { to: '/admin/products', title: 'Products', text: 'View, add, edit, activate or deactivate menu products.', icon: '🍕' },
-  { to: '/admin/orders', title: 'Orders', text: 'All current orders with status filters and sorting.', icon: '🧾' },
-  { to: '/admin/staff?role=CHEF', title: 'Chef Management', text: 'View and manage CHEF staff accounts.', icon: '👨‍🍳' },
-  { to: '/admin/staff?role=DELIVERY', title: 'Delivery Management', text: 'View and manage DELIVERY staff accounts.', icon: '🛵' },
-  { to: '/admin/staff', title: 'All Staff', text: 'Combined CHEF + DELIVERY staff overview.', icon: '👔' },
-  { to: '/admin/analytics', title: 'Analytics', text: 'Delivered-only sales totals and per-product units.', icon: '📊' },
+  { to: '/admin/users', title: 'Users', text: 'Browse customer accounts (name, username, code, email).' },
+  { to: '/admin/products', title: 'Products', text: 'View, add, edit, activate or deactivate menu products.' },
+  { to: '/admin/orders', title: 'Orders', text: 'All current orders with status filters and sorting.' },
+  { to: '/admin/staff?role=CHEF', title: 'Chef Management', text: 'View and manage CHEF staff accounts.' },
+  { to: '/admin/staff?role=DELIVERY', title: 'Delivery Management', text: 'View and manage DELIVERY staff accounts.' },
+  { to: '/admin/staff', title: 'All Staff', text: 'Combined CHEF + DELIVERY staff overview.' },
+  { to: '/admin/analytics', title: 'Analytics', text: 'Delivered-only sales totals and per-product units.' },
 ];
 
 function metaTotal(res) {
@@ -121,22 +121,22 @@ export default function AdminDashboard() {
 
         <div className={styles.stats} aria-label="Overview statistics">
           <div className={styles.statCard}>
-            <p className={styles.statLabel}>👥 Users</p>
+            <p className={styles.statLabel}>Users</p>
             <p className={styles.statValue}>{stats.users ?? '—'}</p>
             <p className={styles.statHint}>View all customers</p>
           </div>
           <div className={styles.statCard}>
-            <p className={styles.statLabel}>💰 Total revenue</p>
+            <p className={styles.statLabel}>Total revenue</p>
             <p className={styles.statValue}>{stats.revenue !== null ? `$${Number(stats.revenue).toLocaleString()}` : '—'}</p>
             <p className={styles.statHint}>Delivered orders only</p>
           </div>
           <div className={styles.statCard}>
-            <p className={styles.statLabel}>🧾 Total orders</p>
+            <p className={styles.statLabel}>Total orders</p>
             <p className={styles.statValue}>{stats.orders ?? '—'}</p>
             <p className={styles.statHint}>All statuses</p>
           </div>
           <div className={styles.statCard}>
-            <p className={styles.statLabel}>🛵 Delivery staff</p>
+            <p className={styles.statLabel}>Delivery staff</p>
             <p className={styles.statValue}>{stats.delivery ?? '—'}</p>
             <p className={styles.statHint}>Active couriers</p>
           </div>
@@ -145,7 +145,6 @@ export default function AdminDashboard() {
         <div className={styles.grid}>
           {SECTIONS.map((s) => (
             <Link key={s.title} to={s.to} className={styles.card}>
-              <span className={styles.cardIcon} aria-hidden="true">{s.icon}</span>
               <h2 className={styles.cardTitle}>{s.title}</h2>
               <p className={styles.cardText}>{s.text}</p>
               <span className={styles.sub} style={{ margin: 0, fontSize: 13 }}>{s.to}</span>
@@ -166,7 +165,6 @@ export default function AdminDashboard() {
             </Link>
           ))}
           <div className={styles.card} aria-label="Sales chart">
-            <span className={styles.cardIcon} aria-hidden="true">📈</span>
             <h2 className={styles.cardTitle}>Sales this week</h2>
             <p className={styles.cardText}>{weekSales !== null ? `$${Number(weekSales).toLocaleString()} delivered total` : 'Delivered-only sales'}</p>
             <div className={styles.chart} aria-hidden="true">

@@ -18,6 +18,14 @@ function round2(value) {
   return Math.round(Number(value) * 100) / 100;
 }
 
+// Optional "Other Details" checkout note: missing/blank becomes null so old
+// rows and empty submissions stay uniform; otherwise trimmed to 500 chars.
+function normalizeOtherDetails(raw) {
+  if (raw === undefined || raw === null) return null;
+  const s = String(raw).trim();
+  return s ? s.slice(0, 500) : null;
+}
+
 // Checkout idempotency (additive, in-memory, single-instance like the rate
 // limiter): same user + same Idempotency-Key replays the original order
 // instead of creating a second active order. Entries expire after 24h and
@@ -250,6 +258,17 @@ async function processOrderEventOutbox(limit) {
 }
 
 function toOrderShape(order, items) {
+  // otherDetails is appended only when the customer filled it in, so the
+  // address shape stays byte-identical to before for all existing orders.
+  const address = {
+    name: order.recipientName,
+    address: order.address,
+    buildingNumber: order.buildingNumber,
+    apartmentNumber: order.apartmentNumber,
+    streetName: order.streetName,
+    phoneNumber: order.phoneNumber,
+  };
+  if (order.otherDetails) address.otherDetails = order.otherDetails;
   return {
     id: order.id,
     status: order.status,
@@ -257,14 +276,7 @@ function toOrderShape(order, items) {
     productsTotal: round2(order.subtotal),
     deliveryFee: round2(order.deliveryFee),
     total: round2(order.total),
-    address: {
-      name: order.recipientName,
-      address: order.address,
-      buildingNumber: order.buildingNumber,
-      apartmentNumber: order.apartmentNumber,
-      streetName: order.streetName,
-      phoneNumber: order.phoneNumber,
-    },
+    address,
     items: items.map((item) => ({
       productId: item.productId,
       productName: item.productName,
@@ -419,6 +431,7 @@ async function checkout(userId, address, options) {
         apartmentNumber: address.apartmentNumber,
         streetName: address.streetName,
         phoneNumber: address.phoneNumber,
+        otherDetails: normalizeOtherDetails(address.otherDetails),
       },
     });
     await tx.orderItem.createMany({
