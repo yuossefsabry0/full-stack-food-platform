@@ -16,6 +16,7 @@ import Cart from './pages/Cart.jsx';
 import DeliveryAddress from './pages/DeliveryAddress.jsx';
 import Orders from './pages/Orders.jsx';
 import OrderDetails from './pages/OrderDetails.jsx';
+import Notifications from './pages/Notifications.jsx';
 
 import ChefRequests from './pages/ChefRequests.jsx';
 import ChefHistory from './pages/ChefHistory.jsx';
@@ -28,6 +29,7 @@ import AdminProducts from './pages/AdminProducts.jsx';
 import AdminOrders from './pages/AdminOrders.jsx';
 import AdminStaff from './pages/AdminStaff.jsx';
 import AdminAnalytics from './pages/AdminAnalytics.jsx';
+import ApiErrorToast from './components/ApiErrorToast.jsx';
 
 function RoleIndex() {
   return <Navigate to="/home" replace />;
@@ -35,7 +37,9 @@ function RoleIndex() {
 
 export default function App() {
   return (
-    <Routes>
+    <>
+      <ApiErrorToast />
+      <Routes>
       {/* Auth entry pages keep the top bar (no bottom taskbar) */}
       <Route element={<AuthLayout />}>
         <Route path="/login" element={<Login />} />
@@ -65,6 +69,7 @@ export default function App() {
           <Route path="/delivery-address" element={<DeliveryAddress />} />
           <Route path="/orders" element={<Orders />} />
           <Route path="/orders/:id" element={<OrderDetails />} />
+          <Route path="/notifications" element={<Notifications />} />
         </Route>
       </Route>
 
@@ -98,7 +103,8 @@ export default function App() {
 
       <Route path="/" element={<RoleIndex />} />
       <Route path="*" element={<Navigate to="/" replace />} />
-    </Routes>
+      </Routes>
+    </>
   );
 }
 

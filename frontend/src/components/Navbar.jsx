@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { NavLink, Link } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext.jsx';
+import NotificationBell from './NotificationBell.jsx';
 import styles from './Navbar.module.css';
 
 function NavIcon({ d }) {
@@ -79,6 +80,7 @@ export default function Navbar() {
             <span>Orders</span>
           </NavLink>
         </nav>
+        <NotificationBell />
         {!isAuthenticated ? (
           <div className={styles.guestActions}>
             <NavLink to="/login" className={styles.loginSolid}>

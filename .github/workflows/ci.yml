@@ -1,0 +1,69 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+
+jobs:
+  backend-unit:
+    name: backend unit + contract checks (no DB)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci --cache .npm-cache
+      - run: npm run prisma:validate
+      - run: npx prisma generate
+      - run: npm run test:unit
+
+  backend-integration:
+    name: backend integration (MySQL service)
+    runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mysql:8
+        env:
+          MYSQL_ALLOW_EMPTY_PASSWORD: 'yes'
+          MYSQL_DATABASE: food_platform_test
+        ports:
+          - 3307:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h localhost -uroot"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=10
+    env:
+      TEST_DATABASE_URL: mysql://root@127.0.0.1:3307/food_platform_test
+      DATABASE_URL: mysql://root@127.0.0.1:3307/food_platform_test
+      JWT_ACCESS_SECRET: test-access-secret-min-32-chars-12345678
+      JWT_REFRESH_SECRET: test-refresh-secret-min-32-chars-1234567
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci --cache .npm-cache
+      - run: npx prisma generate
+      - run: npm run test:setup
+      - run: npm run test:integration
+
+  frontend-build:
+    name: frontend build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
+      - run: npm run build

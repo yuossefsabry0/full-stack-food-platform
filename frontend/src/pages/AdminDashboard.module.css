@@ -87,6 +87,11 @@
   text-decoration: none;
   font-size: 13px;
   font-weight: 600;
+  /* Keep every link on one line so switching sections never re-wraps or
+   * shifts the sidebar text (long labels clip with an ellipsis). */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .sideLink:hover {
@@ -169,6 +174,53 @@
   white-space: nowrap;
   font-weight: 700;
   font-size: 13px;
+}
+
+/* Dashboard header account box (right side): single cream rounded container
+ * holding the three label-over-value columns plus the Logout pill, matching
+ * the header reference. Presentational only. */
+.headSide {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  background: #faf6ef;
+  border: 1px solid #f0e7da;
+  border-radius: 16px;
+  padding: 8px 8px 8px 16px;
+}
+
+.identityCard {
+  border: 0;
+  background: transparent;
+  padding: 0;
+  display: flex;
+  flex-direction: row;
+  gap: 18px;
+  font-size: 13px;
+  min-width: 0;
+}
+
+.idRow {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.idLabel {
+  font-size: 11px;
+  color: #78716c;
+}
+
+.idValue {
+  font-size: 13.5px;
+  color: #1c1917;
+}
+
+.idRole {
+  color: #c2410c;
 }
 
 .stats {
@@ -541,4 +593,273 @@
   font-weight: 800;
   font-size: 14px;
   flex-shrink: 0;
+}
+
+/* Admin Products card layout (breadcrumb + search + pills + product grid).
+ * Presentational only: filtering is client-side over the loaded catalog;
+ * add / edit / activate flows and payloads are unchanged. */
+.crumb {
+  margin: 0 0 12px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #78716c;
+}
+
+.searchRow {
+  margin-bottom: 12px;
+}
+
+.searchInput {
+  max-width: 420px;
+}
+
+.prodGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+}
+
+@media (max-width: 1100px) {
+  .prodGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 640px) {
+  .prodGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.prodCard {
+  background: #fff;
+  border: 1px solid #f0e7da;
+  border-radius: 16px;
+  padding: 14px;
+  box-shadow: 0 8px 24px rgba(28, 25, 23, 0.06);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+}
+
+.prodTile {
+  border-radius: 12px;
+  min-height: 120px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.prodTile img {
+  width: 100%;
+  height: 120px;
+  object-fit: cover;
+  display: block;
+}
+
+.prodInitial {
+  font-size: 40px;
+  font-weight: 800;
+  color: rgba(28, 25, 23, 0.35);
+}
+
+.prodBody {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.prodName {
+  margin: 0;
+  font-size: 14.5px;
+  color: #1c1917;
+}
+
+.prodDesc {
+  margin: 0;
+  font-size: 12.5px;
+  color: #78716c;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.prodMeta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.prodPrice {
+  font-size: 14px;
+  color: #1c1917;
+}
+
+.prodFoot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  border-top: 1px solid #f3f4f6;
+  padding-top: 10px;
+  margin-top: 4px;
+}
+
+.switch {
+  width: 40px;
+  height: 22px;
+  border-radius: 999px;
+  background: #e7e5e4;
+  border: 1px solid #d6d3d1;
+  position: relative;
+  cursor: pointer;
+  padding: 0;
+  flex-shrink: 0;
+}
+
+.switchOn {
+  background: #16a34a;
+  border-color: #16a34a;
+}
+
+.knob {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #fff;
+  transition: left 0.15s ease;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+.switchOn .knob {
+  left: 20px;
+}
+
+.editLink {
+  background: none;
+  border: 0;
+  padding: 4px 2px;
+  color: #c2410c;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.editLink:hover {
+  text-decoration: underline;
+}
+
+.prodEdit {
+  border-top: 1px solid #f3f4f6;
+  padding-top: 10px;
+}
+
+/* Admin Orders table layout (breadcrumb + search/sort bar + status pills +
+ * orders table + pager). Presentational only: status/sort/page reload through
+ * the existing admin-orders endpoint; search filters the loaded page. */
+.ordersBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+
+.sortWrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.sortSelect {
+  width: auto;
+  padding: 7px 10px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.viewLink {
+  background: none;
+  border: 0;
+  padding: 4px 2px;
+  color: #1c1917;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.viewLink:hover {
+  text-decoration: underline;
+}
+
+.detailRow td {
+  background: #fffbeb;
+}
+
+.pillBlue {
+  background: #eff6ff;
+  color: #1d4ed8;
+  border-color: #bfdbfe;
+}
+
+.pager {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 14px;
+}
+
+.pageBtns {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.pageBtn {
+  min-width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  border: 1px solid #e7e5e4;
+  background: #fff;
+  color: #57534e;
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 0 8px;
+}
+
+.pageBtn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.pageBtnActive {
+  background: #131313;
+  border-color: #131313;
+  color: #fff;
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }

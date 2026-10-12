@@ -93,7 +93,7 @@ function handleUnauthorizedRedirect(status) {
   }
 }
 
-export async function apiFetch(path, { method = 'GET', body, auth = false, skipAuthRedirect = false, _retried = false } = {}) {
+export async function apiFetch(path, { method = 'GET', body, auth = false, skipAuthRedirect = false, silent = false, _retried = false } = {}) {
   const headers = { 'Content-Type': 'application/json' };
   if (auth) {
     const token = getAccessToken();
@@ -125,13 +125,36 @@ export async function apiFetch(path, { method = 'GET', body, auth = false, skipA
     ) {
       const refreshed = await tryRefreshTokens().catch(() => null);
       if (refreshed && refreshed.accessToken) {
-        return apiFetch(path, { method, body, auth, skipAuthRedirect, _retried: true });
+        return apiFetch(path, { method, body, auth, skipAuthRedirect, silent, _retried: true });
       }
     }
     const message = (payload && (payload.message || payload.error)) || `Request failed (${res.status})`;
     const err = new Error(message);
     err.status = res.status;
     err.payload = payload;
+    // Additive enrichment for the global toast + inline notices: backend
+    // error code, validation details, and 429 Retry-After. Existing
+    // err.message / err.status / err.payload shapes are unchanged.
+    try {
+      err.code = (payload && payload.code) || '';
+      const retryRaw = res.headers && typeof res.headers.get === 'function' ? res.headers.get('Retry-After') : null;
+      const retryAfterSec = retryRaw !== null && retryRaw !== '' ? Number(retryRaw) : null;
+      err.retryAfterSec = Number.isFinite(retryAfterSec) && retryAfterSec > 0 ? retryAfterSec : null;
+      err.retryAfter = err.retryAfterSec;
+    } catch {
+      // enrichment must never break error handling
+    }
+    // Global toast hook (best-effort, additive): pages keep their existing
+    // setError(err.message) behavior; ApiErrorToast listens for this event.
+    // silent:true skips the toast (background notification polling must never
+    // surface as a black error bar to the user; callers still get the throw).
+    try {
+      if (!silent && typeof window !== 'undefined' && typeof window.dispatchEvent === 'function') {
+        window.dispatchEvent(new CustomEvent('fp:api-error', { detail: err }));
+      }
+    } catch {
+      // ignore event failures (non-browser / tests)
+    }
     // Narrow auth-failure handling: skip the Login redirect only on the public
     // Home/Menu browse routes (checked via window.location.pathname); every
     // other page keeps the existing forced redirect. Successful requests and
@@ -206,8 +229,7 @@ export const api = {
   },
 
   // admin (ADMIN)
-  adminDashboard: () => apiFetch('/admin', { auth: true }),
-  adminUsers: (params = {}) => {
+  adminDashboard: () => apiFetch('/admin', { auth: true }),  adminUsers: (params = {}) => {
     const qs = new URLSearchParams(
       Object.entries(params).filter(([, v]) => v !== undefined && v !== '')
     ).toString();
@@ -236,6 +258,20 @@ export const api = {
   adminAddStaff: (body) => apiFetch('/admin/staff', { method: 'POST', auth: true, body }),
   adminEditStaff: (id, body) => apiFetch(`/admin/staff/${id}`, { method: 'PATCH', auth: true, body }),
   adminAnalytics: () => apiFetch('/admin/analytics', { auth: true }),
+
+  // site notifications (in-app bell; auth required, any role).
+  // skipAuthRedirect keeps navbar polling guest-safe (no forced login).
+  // silent:true keeps background polling out of the global black error toast;
+  // failures fall back to order-derived rows inside the bell components.
+  notifications: (params = {}) => {
+    const qs = new URLSearchParams(
+      Object.entries(params).filter(([, v]) => v !== undefined && v !== '')
+    ).toString();
+    return apiFetch(`/notifications${qs ? `?${qs}` : ''}`, { auth: true, skipAuthRedirect: true, silent: true });
+  },
+  notificationsUnreadCount: () => apiFetch('/notifications/unread-count', { auth: true, skipAuthRedirect: true, silent: true }),
+  notificationsMarkAllRead: () => apiFetch('/notifications/read-all', { method: 'PATCH', auth: true, skipAuthRedirect: true, silent: true }),
+  notificationsMarkRead: (id) => apiFetch(`/notifications/${id}/read`, { method: 'PATCH', auth: true, skipAuthRedirect: true, silent: true }),
 };
 
 export { BASE_URL, getAccessToken, getRefreshToken, setStoredTokens };

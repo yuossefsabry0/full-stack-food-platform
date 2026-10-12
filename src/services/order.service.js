@@ -52,6 +52,69 @@ function idempotencySet(userId, key, orderId) {
   idempotencyStore.set(`${userId}:${key}`, { orderId, expiresAt: Date.now() + IDEMPOTENCY_TTL_MS });
 }
 
+// DB-backed L2 for idempotency (survives restarts / multi-instance).
+// All helpers are best-effort: they never throw, never change API responses,
+// and silently no-op when the delegate is missing (old generated client,
+// mocked prisma in unit tests) or the table is absent (DB not pushed yet).
+// The mocked-prisma guard below keeps the unit suite DB-free (per README):
+// unit tests replace core delegates (e.g. prisma.order) with plain objects
+// lacking the real delegate marker `.fields`; in that case DB L2 is skipped
+// so no connection is attempted.
+function isPrismaMocked() {
+  try {
+    const orderDelegate = prisma && prisma.order;
+    if (!orderDelegate || typeof orderDelegate.findUnique !== 'function') return true;
+    if (!orderDelegate.fields) return true;
+    return false;
+  } catch {
+    return true;
+  }
+}
+
+async function idempotencyGetDb(userId, key) {
+  try {
+    if (isPrismaMocked()) return null;
+    const delegate = prisma && prisma.idempotencyKey;
+    if (!delegate || typeof delegate.findUnique !== 'function') return null;
+    const row = await delegate.findUnique({ where: { userId_key: { userId, key } } });
+    if (!row) return null;
+    if (row.expiresAt && new Date(row.expiresAt).getTime() <= Date.now()) {
+      try {
+        await delegate.delete({ where: { userId_key: { userId, key } } });
+      } catch { /* expired-row cleanup is best-effort */ }
+      return null;
+    }
+    return row;
+  } catch {
+    return null;
+  }
+}
+
+async function idempotencySetDb(userId, key, orderId) {
+  try {
+    if (isPrismaMocked()) return;
+    const delegate = prisma && prisma.idempotencyKey;
+    if (!delegate || typeof delegate.upsert !== 'function') return;
+    await delegate.upsert({
+      where: { userId_key: { userId, key } },
+      create: { userId, key, orderId, expiresAt: new Date(Date.now() + IDEMPOTENCY_TTL_MS) },
+      update: { orderId, expiresAt: new Date(Date.now() + IDEMPOTENCY_TTL_MS) },
+    });
+  } catch { /* persistence is best-effort; memory L1 remains authoritative */ }
+}
+
+async function purgeExpiredIdempotencyKeys() {
+  try {
+    if (isPrismaMocked()) return { deleted: 0 };
+    const delegate = prisma && prisma.idempotencyKey;
+    if (!delegate || typeof delegate.deleteMany !== 'function') return { deleted: 0 };
+    const res = await delegate.deleteMany({ where: { expiresAt: { lte: new Date() } } });
+    return { deleted: res && typeof res.count === 'number' ? res.count : 0 };
+  } catch {
+    return { deleted: 0 };
+  }
+}
+
 // Order-event webhook (fire-and-forget, no new dependencies): POSTs a small
 // JSON payload to ORDER_EVENT_ENDPOINT after commit. Failures are only
 // logged; responses never change. Mirrors the mailer HTTP-hook pattern.
@@ -80,6 +143,110 @@ async function notifyOrderEvent({ event, orderId, userId, status, total }) {
     console.error(`Order event ${event} undelivered for order ${orderId}:`, err && err.message);
     return { delivered: false, channel: 'http-hook' };
   }
+}
+
+// Outbox enqueue (no-loss wrapper around notifyOrderEvent): tries the
+// immediate POST first; on failure persists the event best-effort so the
+// background worker can retry. Never throws, never changes API responses.
+// When the endpoint is unset, no row is written (mirrors notifyOrderEvent
+// 'disabled' behavior, preserving the existing unit-test contract).
+async function enqueueOrderEvent({ event, orderId, userId, status, total }) {
+  const endpoint = process.env.ORDER_EVENT_ENDPOINT || env.orderEventEndpoint || '';
+  if (!endpoint) return { delivered: false, channel: 'disabled' };
+  const attempt = await notifyOrderEvent({ event, orderId, userId, status, total });
+  if (attempt && attempt.delivered) return attempt;
+  try {
+    if (isPrismaMocked()) return { delivered: false, channel: 'http-hook' };
+    const delegate = prisma && prisma.orderEventOutbox;
+    if (delegate && typeof delegate.create === 'function') {
+      await delegate.create({
+        data: {
+          event,
+          orderId,
+          userId,
+          status,
+          total: total === undefined || total === null ? null : String(total),
+          attempts: 1,
+          nextRetryAt: new Date(Date.now() + 5000),
+          lastError: 'initial delivery failed',
+        },
+      });
+      return { delivered: false, channel: 'outbox' };
+    }
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    console.error(`Order event outbox enqueue failed for order ${orderId}:`, err && err.message);
+  }
+  return { delivered: false, channel: 'http-hook' };
+}
+
+function outboxBackoffMs(attempts) {
+  const base = 5000 * Math.pow(2, Math.max(0, attempts - 1));
+  return Math.min(base, 30 * 60 * 1000);
+}
+
+// Background retry: delivers due outbox rows oldest-first (max `limit`),
+// marks successes deliveredAt, otherwise bumps attempts/nextRetryAt.
+// Also purges expired idempotency keys best-effort in the same pass.
+// Never throws; safe to run on an interval or manually.
+async function processOrderEventOutbox(limit) {
+  const take = Number.isFinite(limit) && limit > 0 ? Math.min(limit, 100) : 20;
+  let processed = 0;
+  let delivered = 0;
+  try {
+    if (isPrismaMocked()) {
+      return { processed: 0, delivered: 0 };
+    }
+    const delegate = prisma && prisma.orderEventOutbox;
+    if (!delegate || typeof delegate.findMany !== 'function') {
+      await purgeExpiredIdempotencyKeys();
+      return { processed: 0, delivered: 0 };
+    }
+    const due = await delegate.findMany({
+      where: { deliveredAt: null, nextRetryAt: { lte: new Date() } },
+      orderBy: { id: 'asc' },
+      take,
+    });
+    for (const row of due || []) {
+      processed += 1;
+      try {
+        const res = await notifyOrderEvent({
+          event: row.event,
+          orderId: row.orderId,
+          userId: row.userId,
+          status: row.status,
+          total: row.total === null || row.total === undefined ? undefined : Number(row.total),
+        });
+        if (res && res.delivered) {
+          await delegate.update({ where: { id: row.id }, data: { deliveredAt: new Date(), attempts: row.attempts + 1 } });
+          delivered += 1;
+        } else {
+          const attempts = (row.attempts || 0) + 1;
+          await delegate.update({
+            where: { id: row.id },
+            data: { attempts, nextRetryAt: new Date(Date.now() + outboxBackoffMs(attempts)), lastError: 'retry failed' },
+          });
+        }
+      } catch (err) {
+        try {
+          const attempts = (row.attempts || 0) + 1;
+          await delegate.update({
+            where: { id: row.id },
+            data: {
+              attempts,
+              nextRetryAt: new Date(Date.now() + outboxBackoffMs(attempts)),
+              lastError: String((err && err.message) || 'retry error').slice(0, 500),
+            },
+          });
+        } catch { /* per-row update failure must not stop the batch */ }
+      }
+    }
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    console.error('Order event outbox retry failed:', err && err.message);
+  }
+  await purgeExpiredIdempotencyKeys();
+  return { processed, delivered };
 }
 
 function toOrderShape(order, items) {
@@ -166,6 +333,20 @@ async function checkout(userId, address, options) {
         return toOrderShape(existing, existing.items);
       }
       idempotencyStore.delete(`${userId}:${idempotencyKey}`);
+    } else {
+      // Memory miss: consult the DB L2 (survives restarts). On hit, warm
+      // the memory L1 and replay; on miss/error fall through to creation.
+      const dbHit = await idempotencyGetDb(userId, idempotencyKey);
+      if (dbHit) {
+        const existing = await prisma.order.findUnique({
+          where: { id: dbHit.orderId },
+          include: { items: { orderBy: { id: 'asc' } } },
+        });
+        if (existing && existing.userId === userId) {
+          idempotencySet(userId, idempotencyKey, dbHit.orderId);
+          return toOrderShape(existing, existing.items);
+        }
+      }
     }
   }
   // One transaction: per-user mutex + active-order check + cart snapshot +
@@ -252,15 +433,24 @@ async function checkout(userId, address, options) {
     orderBy: { id: 'asc' },
   });
   const shaped = toOrderShape(order, orderItems);
-  if (idempotencyKey) idempotencySet(userId, idempotencyKey, order.id);
+  if (idempotencyKey) {
+    idempotencySet(userId, idempotencyKey, order.id);
+    await idempotencySetDb(userId, idempotencyKey, order.id);
+  }
+  // No-loss outbox: immediate attempt, persisted for retry on failure.
   // Fire-and-forget: never blocks or fails checkout.
-  void notifyOrderEvent({
+  void enqueueOrderEvent({
     event: 'order.created',
     orderId: order.id,
     userId,
     status: order.status,
     total: Number(order.total),
   });
+  // Site notification: order placement + PENDING status (best-effort).
+  try {
+    const { notifyOrderStatus } = require('./notification.service');
+    void notifyOrderStatus(userId, order.id, 'PENDING', Number(order.total));
+  } catch { /* never blocks checkout */ }
   return shaped;
 }
 
@@ -304,6 +494,9 @@ module.exports = {
   getOrder,
   toOrderShape,
   notifyOrderEvent,
+  enqueueOrderEvent,
+  processOrderEventOutbox,
+  purgeExpiredIdempotencyKeys,
   normalizeIdempotencyKey,
 };
 

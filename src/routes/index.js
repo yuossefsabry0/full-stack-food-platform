@@ -11,6 +11,7 @@ const orderRoutes = require('./order.routes');
 const chefRoutes = require('./chef.routes');
 const deliveryRoutes = require('./delivery.routes');
 const adminRoutes = require('./admin.routes');
+const notificationRoutes = require('./notification.routes');
 const { success } = require('../utils/response');
 
 const router = express.Router();
@@ -31,5 +32,6 @@ router.use('/orders', orderRoutes);
 router.use('/chef', chefRoutes);
 router.use('/delivery', deliveryRoutes);
 router.use('/admin', adminRoutes);
+router.use('/notifications', notificationRoutes);
 
 module.exports = router;

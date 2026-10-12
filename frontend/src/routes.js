@@ -12,6 +12,7 @@ export const ROUTES = {
   deliveryAddress: '/delivery-address',
   orders: '/orders',
   orderDetails: (id = ':id') => `/orders/${id}`,
+  notifications: '/notifications',
   chefRequests: '/chef/requests',
   chefHistory: '/chef/history',
   deliveryCurrent: '/delivery/current',

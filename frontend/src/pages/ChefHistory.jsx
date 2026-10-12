@@ -84,8 +84,8 @@ export default function ChefHistory() {
           Joo food
         </div>
         <nav className={dash.nav}>
-          <Link to="/chef/requests" className={dash.navLink}>🧾 Orders</Link>
-          <Link to="/chef/history" className={`${dash.navLink} ${dash.navLinkActive}`}>🕘 History</Link>
+          <Link to="/chef/requests" className={dash.navLink}>Orders</Link>
+          <Link to="/chef/history" className={`${dash.navLink} ${dash.navLinkActive}`}>History</Link>
         </nav>
         <button type="button" className={dash.logoutBtn} onClick={logout}>↩ Logout</button>
       </aside>
@@ -96,7 +96,7 @@ export default function ChefHistory() {
             <p className={dash.sub}>Prepared orders (read-only history).</p>
           </div>
           <div className={dash.userChip}>
-            <span className={dash.userName}>🧑‍🍳 {user?.username || 'chef'}</span>
+            <span className={dash.userName}>{user?.username || 'chef'}</span>
             <button type="button" className={dash.topLogout} onClick={logout}>Logout</button>
           </div>
         </div>

@@ -76,6 +76,10 @@ export function AuthProvider({ children }) {
     localStorage.setItem('fp_refreshToken', refreshToken || '');
     localStorage.setItem('fp_user', JSON.stringify(user || null));
     setAuth({ accessToken: accessToken || '', refreshToken: refreshToken || '', user: user || null });
+    // Notify the bell (best-effort): the backend also stores a login row.
+    try {
+      window.dispatchEvent(new CustomEvent('fp:notifications-refresh'));
+    } catch { /* ignore */ }
     return user;
   }, []);
 

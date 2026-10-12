@@ -49,6 +49,16 @@ async function registerBasicUser({ name, username, email, password }) {
     });
   });
 
+  // Site notification (best-effort, never fails registration).
+  try {
+    const { createNotification } = require('./notification.service');
+    void createNotification(user.id, {
+      type: 'AUTH_REGISTER',
+      title: 'Welcome to Joo food',
+      body: `Hi ${user.name || user.username}, your account was created. Please log in.`,
+    });
+  } catch { /* notification must never break registration */ }
+
   return toPublicUser(user);
 }
 
@@ -114,6 +124,16 @@ async function loginBasicUser({ username, password }) {
     // eslint-disable-next-line no-console
     console.error('Failed to persist refresh token record:', e.message);
   }
+
+  // Site notification (best-effort, never fails login).
+  try {
+    const { createNotification } = require('./notification.service');
+    void createNotification(user.id, {
+      type: 'AUTH_LOGIN',
+      title: 'Login successful',
+      body: `Hi ${user.name || user.username}, you logged in just now.`,
+    });
+  } catch { /* notification must never break login */ }
 
   return { user: toPublicUser(user), accessToken, refreshToken, tokenType: 'Bearer' };
 }

@@ -49,6 +49,11 @@ async function prepareOrder(chefUserId, orderId) {
     where: { id: orderId },
     include: { items: { orderBy: { id: 'asc' } } },
   });
+  // Site notification to the order owner: new status PREPARING (best-effort).
+  try {
+    const { notifyOrderStatus } = require('./notification.service');
+    void notifyOrderStatus(updated.userId, updated.id, 'PREPARING', Number(updated.total));
+  } catch { /* never blocks chef flow */ }
   return toChefOrderShape(updated, updated.items);
 }
 
@@ -77,6 +82,11 @@ async function handoverOrder(chefUserId, orderId) {
     where: { id: orderId },
     include: { items: { orderBy: { id: 'asc' } } },
   });
+  // Site notification to the order owner: new status READY_FOR_DELIVERY.
+  try {
+    const { notifyOrderStatus } = require('./notification.service');
+    void notifyOrderStatus(updated.userId, updated.id, 'READY_FOR_DELIVERY', Number(updated.total));
+  } catch { /* never blocks chef flow */ }
   return toChefOrderShape(updated, updated.items);
 }
 

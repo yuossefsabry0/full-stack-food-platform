@@ -79,6 +79,13 @@ const env = {
     const parsed = parseInt(process.env.PURGE_AUTH_TOKENS_INTERVAL_MS || '', 10);
     return Number.isFinite(parsed) && parsed > 0 ? parsed : 6 * 60 * 60 * 1000;
   })(),
+  // Order-event outbox retry interval (safe default: 60s). Only starts the
+  // background worker in server.js; tests/jobs import the retry function
+  // directly and never start timers.
+  orderEventRetryIntervalMs: (() => {
+    const parsed = parseInt(process.env.ORDER_EVENT_RETRY_INTERVAL_MS || '', 10);
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : 60 * 1000;
+  })(),
 };
 
 // Deployment/proxy-aware: 'true' -> trust first proxy, 'false'/unset -> direct,

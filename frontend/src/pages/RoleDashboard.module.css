@@ -80,6 +80,11 @@
   text-decoration: none;
   font-size: 13.5px;
   font-weight: 600;
+  /* Single-line links so the chef/delivery sidebar never re-wraps or
+   * shifts when switching sections. */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .navLink:hover {

@@ -207,8 +207,8 @@ export default function DeliveryCurrent() {
           Joo food
         </div>
         <nav className={dash.nav}>
-          <Link to="/delivery/current" className={`${dash.navLink} ${dash.navLinkActive}`}>🧾 Orders</Link>
-          <Link to="/delivery/previous" className={dash.navLink}>🕘 History</Link>
+          <Link to="/delivery/current" className={`${dash.navLink} ${dash.navLinkActive}`}>Orders</Link>
+          <Link to="/delivery/previous" className={dash.navLink}>History</Link>
         </nav>
         <button type="button" className={dash.logoutBtn} onClick={logout}>↩ Logout</button>
       </aside>
@@ -219,7 +219,7 @@ export default function DeliveryCurrent() {
             <p className={dash.sub}>Accept the chef, deliver, done.</p>
           </div>
           <div className={dash.userChip}>
-            <span className={dash.userName}>🛵 {user?.username || 'delivery'}</span>
+            <span className={dash.userName}>{user?.username || 'delivery'}</span>
             <button type="button" className={dash.topLogout} onClick={logout}>Logout</button>
           </div>
         </div>

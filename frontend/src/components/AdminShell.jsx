@@ -8,14 +8,14 @@ import styles from '../pages/AdminDashboard.module.css';
 // Analytics), matching the design concept. Presentational only — page logic,
 // API calls, routes and payloads live in each page and are unchanged.
 const LINKS = [
-  { key: 'dashboard', to: '/admin', label: 'Dashboard', icon: '📊' },
-  { key: 'users', to: '/admin/users', label: 'Users', icon: '👥' },
-  { key: 'products', to: '/admin/products', label: 'Products', icon: '🍕' },
-  { key: 'orders', to: '/admin/orders', label: 'Orders', icon: '🧾' },
-  { key: 'chef', to: '/admin/staff?role=CHEF', label: 'Chef Management', icon: '👨‍🍳' },
-  { key: 'delivery', to: '/admin/staff?role=DELIVERY', label: 'Delivery Management', icon: '🛵' },
-  { key: 'staff', to: '/admin/staff', label: 'All Staff', icon: '👔' },
-  { key: 'analytics', to: '/admin/analytics', label: 'Analytics', icon: '📈' },
+  { key: 'dashboard', to: '/admin', label: 'Dashboard' },
+  { key: 'users', to: '/admin/users', label: 'Users' },
+  { key: 'products', to: '/admin/products', label: 'Products' },
+  { key: 'orders', to: '/admin/orders', label: 'Orders' },
+  { key: 'chef', to: '/admin/staff?role=CHEF', label: 'Chef Management' },
+  { key: 'delivery', to: '/admin/staff?role=DELIVERY', label: 'Delivery Management' },
+  { key: 'staff', to: '/admin/staff', label: 'All Staff' },
+  { key: 'analytics', to: '/admin/analytics', label: 'Analytics' },
 ];
 
 export default function AdminShell({ active, title, sub, actions, children }) {
@@ -35,7 +35,7 @@ export default function AdminShell({ active, title, sub, actions, children }) {
               className={`${styles.sideLink} ${active === l.key ? styles.sideLinkActive : ''}`}
               aria-current={active === l.key ? 'page' : undefined}
             >
-              <span aria-hidden="true">{l.icon}</span> {l.label}
+              {l.label}
             </Link>
           ))}
         </nav>
@@ -51,7 +51,7 @@ export default function AdminShell({ active, title, sub, actions, children }) {
               {sub && <p className={styles.sectionSub}>{sub}</p>}
             </div>
             <div className={styles.userChip}>
-              <span className={styles.userName}>👤 {user?.username || 'admin'}</span>
+              <span className={styles.userName}>{user?.username || 'admin'}</span>
               {actions}
               <button type="button" className={styles.logout} onClick={logout}>
                 Logout

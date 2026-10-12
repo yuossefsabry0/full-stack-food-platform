@@ -44,6 +44,7 @@ model User {
 
   authTokens     AuthToken[]
   passwordResetOtps PasswordResetOtp[]
+  notifications  Notification[]
   cart           Cart?
   orders         Order[]
   
@@ -235,4 +236,65 @@ model OrderItem {
   lineTotal   Decimal  @db.Decimal(10, 2)
 
   @@map("order_items")
+}
+
+// Site notifications (in-app bell): one row per user action / order event.
+// Covers logins, registrations, order placement and every order-status
+// change. Read state is per-row (isRead). Never blocks API responses —
+// all writes go through the best-effort service (no-throw).
+model Notification {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      String   @db.VarChar(60)
+  title     String   @db.VarChar(190)
+  body      String?  @db.VarChar(500)
+  orderId   Int?
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId, isRead])
+  @@index([userId, createdAt])
+  @@map("notifications")
+}
+
+// Checkout idempotency (DB-backed L2 for the in-memory L1 in
+// src/services/order.service.js): same user + same key replays the original
+// order across restarts and instances. Rows are write-only from checkout,
+// never read by other domains; expired rows are purged best-effort.
+// No FK to orders so history/outbox behavior never blocks order lifecycle.
+model IdempotencyKey {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  key       String   @db.VarChar(128)
+  orderId   Int
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@unique([userId, key])
+  @@index([expiresAt])
+  @@map("idempotency_keys")
+}
+
+// Order-event outbox (no-loss delivery for ORDER_EVENT_ENDPOINT webhooks):
+// checkout/delivery enqueue here when the immediate POST fails; a background
+// worker retries with backoff until deliveredAt is set. No FK to orders so a
+// missing order never blocks the retry worker; payload fields mirror the
+// existing webhook body { event, orderId, userId, status, total }.
+model OrderEventOutbox {
+  id          Int       @id @default(autoincrement())
+  event       String    @db.VarChar(60)
+  orderId     Int
+  userId      Int
+  status      String    @db.VarChar(40)
+  total       Decimal?  @db.Decimal(10, 2)
+  attempts    Int       @default(0)
+  nextRetryAt DateTime  @default(now())
+  deliveredAt DateTime?
+  lastError   String?   @db.VarChar(500)
+  createdAt   DateTime  @default(now())
+
+  @@index([deliveredAt, nextRetryAt])
+  @@map("order_event_outbox")
 }

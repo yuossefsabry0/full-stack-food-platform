@@ -74,14 +74,14 @@ export default function AdminDashboard() {
           Joo food
         </div>
         <nav className={styles.sideNav}>
-          <Link to="/admin" className={`${styles.sideLink} ${styles.sideLinkActive}`}>📊 Dashboard</Link>
-          <Link to="/admin/users" className={styles.sideLink}>👥 Users</Link>
-          <Link to="/admin/products" className={styles.sideLink}>🍕 Products</Link>
-          <Link to="/admin/orders" className={styles.sideLink}>🧾 Orders</Link>
-          <Link to="/admin/staff?role=CHEF" className={styles.sideLink}>👨‍🍳 Chef Management</Link>
-          <Link to="/admin/staff?role=DELIVERY" className={styles.sideLink}>🛵 Delivery Management</Link>
-          <Link to="/admin/staff" className={styles.sideLink}>👔 All Staff</Link>
-          <Link to="/admin/analytics" className={styles.sideLink}>📈 Analytics</Link>
+          <Link to="/admin" className={`${styles.sideLink} ${styles.sideLinkActive}`}>Dashboard</Link>
+          <Link to="/admin/users" className={styles.sideLink}>Users</Link>
+          <Link to="/admin/products" className={styles.sideLink}>Products</Link>
+          <Link to="/admin/orders" className={styles.sideLink}>Orders</Link>
+          <Link to="/admin/staff?role=CHEF" className={styles.sideLink}>Chef Management</Link>
+          <Link to="/admin/staff?role=DELIVERY" className={styles.sideLink}>Delivery Management</Link>
+          <Link to="/admin/staff" className={styles.sideLink}>All Staff</Link>
+          <Link to="/admin/analytics" className={styles.sideLink}>Analytics</Link>
         </nav>
         {/* Admin logout lives on the dashboard (no shared top navbar here). */}
         <button type="button" className={styles.sideLogout} onClick={logout}>↩ Logout</button>
@@ -94,25 +94,29 @@ export default function AdminDashboard() {
             <p className={styles.sub}>
               Signed in as {user?.name || user?.username || 'Admin'}. Choose a section below.
             </p>
-            <div style={{ marginTop: 12, borderTop: '1px solid #e5e7eb', paddingTop: 12, display: 'flex', flexDirection: 'column', gap: 4, fontSize: 14, maxWidth: 420 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}>
-                <span className={styles.sub} style={{ margin: 0 }}>Username</span>
-                <strong>{user?.username || '—'}</strong>
+          </div>
+          {/* Identity box beside Logout (matches the dashboard header reference):
+           * same username / user-code / role values, same logout handler. */}
+          <div className={styles.headSide}>
+            <div className={styles.identityCard} aria-label="Signed-in account">
+              <div className={styles.idRow}>
+                <span className={styles.idLabel}>Username</span>
+                <strong className={styles.idValue}>{user?.username || '—'}</strong>
               </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}>
-                <span className={styles.sub} style={{ margin: 0 }}>User code</span>
-                <strong>{user?.userCode || '—'}</strong>
+              <div className={styles.idRow}>
+                <span className={styles.idLabel}>User code</span>
+                <strong className={styles.idValue}>{user?.userCode || '—'}</strong>
               </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}>
-                <span className={styles.sub} style={{ margin: 0 }}>Role</span>
-                <strong>{user?.role || 'ADMIN'}</strong>
+              <div className={styles.idRow}>
+                <span className={styles.idLabel}>Role</span>
+                <strong className={`${styles.idValue} ${styles.idRole}`}>{user?.role || 'ADMIN'}</strong>
               </div>
             </div>
+            {/* Admin logout lives on the dashboard (no shared top navbar here). */}
+            <button type="button" className={styles.logout} onClick={logout}>
+              Logout
+            </button>
           </div>
-          {/* Admin logout lives on the dashboard (no shared top navbar here). */}
-          <button type="button" className={styles.logout} onClick={logout}>
-            Logout
-          </button>
         </div>
 
         <div className={styles.stats} aria-label="Overview statistics">

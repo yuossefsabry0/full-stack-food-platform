@@ -45,6 +45,10 @@ export default function DeliveryAddress() {
     setError('');
     try {
       await api.checkout(form);
+      // Refresh the bell: backend stored an order-placed notification.
+      try {
+        window.dispatchEvent(new CustomEvent('fp:notifications-refresh'));
+      } catch { /* ignore */ }
       navigate('/orders');
     } catch (err) {
       setError(err.message);

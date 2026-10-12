@@ -85,8 +85,8 @@ export default function DeliveryPrevious() {
           Joo food
         </div>
         <nav className={dash.nav}>
-          <Link to="/delivery/current" className={dash.navLink}>🧾 Orders</Link>
-          <Link to="/delivery/previous" className={`${dash.navLink} ${dash.navLinkActive}`}>🕘 History</Link>
+          <Link to="/delivery/current" className={dash.navLink}>Orders</Link>
+          <Link to="/delivery/previous" className={`${dash.navLink} ${dash.navLinkActive}`}>History</Link>
         </nav>
         <button type="button" className={dash.logoutBtn} onClick={logout}>↩ Logout</button>
       </aside>
@@ -97,7 +97,7 @@ export default function DeliveryPrevious() {
             <p className={dash.sub}>Previous deliveries (read-only).</p>
           </div>
           <div className={dash.userChip}>
-            <span className={dash.userName}>🛵 {user?.username || 'delivery'}</span>
+            <span className={dash.userName}>{user?.username || 'delivery'}</span>
             <button type="button" className={dash.topLogout} onClick={logout}>Logout</button>
           </div>
         </div>

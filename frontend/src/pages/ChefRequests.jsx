@@ -243,8 +243,8 @@ export default function ChefRequests() {
           Joo food
         </div>
         <nav className={dash.nav}>
-          <Link to="/chef/requests" className={`${dash.navLink} ${dash.navLinkActive}`}>🧾 Orders</Link>
-          <Link to="/chef/history" className={dash.navLink}>🕘 History</Link>
+          <Link to="/chef/requests" className={`${dash.navLink} ${dash.navLinkActive}`}>Orders</Link>
+          <Link to="/chef/history" className={dash.navLink}>History</Link>
         </nav>
         <button type="button" className={dash.logoutBtn} onClick={logout}>↩ Logout</button>
       </aside>
@@ -255,7 +255,7 @@ export default function ChefRequests() {
             <p className={dash.sub}>Receive the new orders, prepare them, hand over to delivery.</p>
           </div>
           <div className={dash.userChip}>
-            <span className={dash.userName}>🧑‍🍳 {user?.username || 'chef'}</span>
+            <span className={dash.userName}>{user?.username || 'chef'}</span>
             <button type="button" className={dash.topLogout} onClick={logout}>Logout</button>
           </div>
         </div>

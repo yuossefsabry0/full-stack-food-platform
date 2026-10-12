@@ -1,7 +1,7 @@
 'use strict';
 
 const prisma = require('../config/database');
-const { toOrderShape, notifyOrderEvent } = require('./order.service');
+const { toOrderShape, enqueueOrderEvent } = require('./order.service');
 const { orderStatusLabel } = require('../utils/orderStatus');
 
 function toDeliveryOrderShape(order, items, viewerDeliveryId) {
@@ -119,6 +119,12 @@ async function acceptOrder(deliveryUserId, orderId) {
     });
   });
 
+  // Site notification to the order owner: new status OUT_FOR_DELIVERY.
+  try {
+    const { notifyOrderStatus } = require('./notification.service');
+    void notifyOrderStatus(claimed.userId, claimed.id, 'OUT_FOR_DELIVERY', Number(claimed.total));
+  } catch { /* never blocks delivery flow */ }
+
   return toDeliveryOrderShape(claimed, claimed.items, deliveryUserId);
 }
 
@@ -154,14 +160,20 @@ async function deliverOrder(deliveryUserId, orderId) {
     where: { id: orderId },
     include: { items: { orderBy: { id: 'asc' } } },
   });
+  // No-loss outbox: immediate attempt, persisted for retry on failure.
   // Fire-and-forget: never blocks or fails delivery.
-  void notifyOrderEvent({
+  void enqueueOrderEvent({
     event: 'order.delivered',
     orderId: updated.id,
     userId: updated.userId,
     status: updated.status,
     total: Number(updated.total),
   });
+  // Site notification to the order owner: new status DELIVERED.
+  try {
+    const { notifyOrderStatus } = require('./notification.service');
+    void notifyOrderStatus(updated.userId, updated.id, 'DELIVERED', Number(updated.total));
+  } catch { /* never blocks delivery flow */ }
   return toDeliveryOrderShape(updated, updated.items, deliveryUserId);
 }
 

@@ -323,3 +323,99 @@ label.field {
   font-size: 13px;
   margin-top: 8px;
 }
+
+/* Additive error surfaces (ApiErrorToast + ErrorNotice): reuse the existing
+ * .error red so pages keep their look; no existing selectors changed. */
+.error-notice {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  border: 1px solid #fecaca;
+  background: #fef2f2;
+  color: #7f1d1d;
+  border-radius: 10px;
+  padding: 10px 12px;
+  margin-top: 8px;
+  font-size: 13px;
+}
+
+.error-notice.is-compact {
+  padding: 8px 10px;
+}
+
+.error-notice-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.error-notice-message {
+  margin: 0;
+  font-weight: 600;
+}
+
+.error-notice-code {
+  margin: 4px 0 0;
+  color: #b91c1c;
+}
+
+.error-notice-details {
+  margin: 6px 0 0;
+  padding-left: 18px;
+}
+
+.error-notice-dismiss {
+  border: 1px solid #fecaca;
+  background: #fff;
+  color: #b91c1c;
+  border-radius: 999px;
+  width: 26px;
+  height: 26px;
+  cursor: pointer;
+  line-height: 1;
+}
+
+.api-toast {
+  position: fixed;
+  left: 50%;
+  bottom: 20px;
+  transform: translateX(-50%);
+  z-index: 9999;
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  max-width: min(560px, calc(100vw - 32px));
+  background: #111827;
+  color: #fff;
+  border-radius: 12px;
+  padding: 12px 14px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35);
+}
+
+.api-toast-body {
+  flex: 1;
+  min-width: 0;
+  font-size: 13.5px;
+}
+
+.api-toast-title {
+  display: block;
+}
+
+.api-toast-sub {
+  display: block;
+  opacity: 0.8;
+  font-size: 12px;
+  margin-top: 2px;
+}
+
+.api-toast-dismiss {
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  background: transparent;
+  color: #fff;
+  border-radius: 999px;
+  width: 28px;
+  height: 28px;
+  cursor: pointer;
+  font-size: 16px;
+  line-height: 1;
+}
