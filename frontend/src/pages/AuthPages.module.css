@@ -196,6 +196,179 @@
   accent-color: #ea580c;
 }
 
+/* Task 101 — Register standalone split (Register.jsx ONLY; Login/Forgot
+ * keep the shared card above untouched). Left image half (50%, top bar to
+ * viewport bottom, single continuous panel) + independent right form half
+ * (50%). Page-level no-scroll on desktop; the form half scrolls internally
+ * only if the viewport is too short. Backend/database are not involved. */
+.regSplit {
+  /* Fixed to the viewport (below the top bar, flush to the bottom) instead
+   * of viewport-unit height math, which misresolves under the site-wide
+   * `zoom: 0.9` and left a strip of page background below the image. No
+   * viewport units are used, so no gap and no page scroll can occur. */
+  position: fixed;
+  top: 61px;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: stretch;
+  width: 100%;
+  overflow: hidden;
+  background: #fff;
+}
+
+.regHero {
+  flex: 0 0 50%;
+  max-width: 50%;
+  position: relative;
+  overflow: hidden;
+  color: #fff;
+  background:
+    radial-gradient(circle at 88% 12%, rgba(255, 255, 255, 0.16), transparent 46%),
+    radial-gradient(circle at 8% 92%, rgba(0, 0, 0, 0.14), transparent 52%),
+    linear-gradient(155deg, #f97316 0%, #ea580c 55%, #c2410c 100%);
+  padding: clamp(20px, 3vw, 44px);
+  display: flex;
+  flex-direction: column;
+}
+
+.regHeroRing {
+  position: absolute;
+  width: 130%;
+  aspect-ratio: 1;
+  left: -35%;
+  bottom: -55%;
+  border: 56px solid rgba(255, 255, 255, 0.08);
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+.regHeroTitle {
+  margin: 10px 0 0;
+  font-size: clamp(30px, 3.2vw, 46px);
+  line-height: 1.05;
+  letter-spacing: -0.01em;
+  max-width: 12ch;
+}
+
+.regHeroText {
+  margin: 10px 0 0;
+  font-size: 14px;
+  line-height: 1.55;
+  color: rgba(255, 255, 255, 0.9);
+  max-width: 38ch;
+}
+
+.regPill {
+  align-self: flex-start;
+  background: #fff;
+  color: #1c1917;
+  border-radius: 999px;
+  padding: 8px 18px;
+  font-size: 12.5px;
+  font-weight: 700;
+  margin-top: 16px;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.18);
+  white-space: nowrap;
+}
+
+.regArt {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  margin-top: 8px;
+}
+
+.regDish {
+  position: absolute;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 4px solid rgba(255, 255, 255, 0.85);
+  box-shadow: 0 14px 30px rgba(0, 0, 0, 0.25);
+}
+
+.regDishMain {
+  width: min(60%, 300px);
+  aspect-ratio: 1;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: -10%;
+}
+
+.regDishSide {
+  width: min(34%, 168px);
+  aspect-ratio: 1;
+  right: 1%;
+  top: 0;
+}
+
+.regDishSmall {
+  width: min(22%, 108px);
+  aspect-ratio: 1;
+  left: 0;
+  top: 24%;
+}
+
+.regBadge {
+  position: absolute;
+  right: 3%;
+  bottom: 5%;
+  background: #fff;
+  color: #1c1917;
+  border-radius: 999px;
+  padding: 7px 14px;
+  font-size: 12px;
+  font-weight: 700;
+  display: inline-flex;
+  gap: 7px;
+  align-items: center;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.18);
+  white-space: nowrap;
+}
+
+.regBadgeDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #16a34a;
+  flex-shrink: 0;
+}
+
+.regFormHalf {
+  flex: 0 0 50%;
+  max-width: 50%;
+  background: #fff;
+  overflow-y: auto;
+  overflow-x: hidden;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+@media (max-width: 760px) {
+  .regSplit {
+    position: static;
+    height: auto;
+    flex-direction: column;
+    overflow: visible;
+  }
+
+  .regHero,
+  .regFormHalf {
+    flex: none;
+    max-width: 100%;
+  }
+
+  .regHero {
+    min-height: 480px;
+  }
+
+  .regFormHalf {
+    overflow: visible;
+  }
+}
+
 .authSwitch {
   margin: 16px 0 0;
   font-size: 13.5px;
