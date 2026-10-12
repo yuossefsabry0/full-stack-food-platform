@@ -335,6 +335,25 @@
   flex-shrink: 0;
 }
 
+/* Task 103 — Forgot-password hero row (ForgotPassword.jsx ONLY): three
+ * equal circular dishes in a row along the panel bottom. */
+.regRow {
+  display: flex;
+  gap: clamp(10px, 1.5vw, 20px);
+  margin-top: auto;
+  padding-top: 24px;
+}
+
+.regRowDish {
+  width: clamp(72px, 22%, 118px);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 3px solid rgba(255, 255, 255, 0.85);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.22);
+  flex-shrink: 0;
+}
+
 .regFormHalf {
   flex: 0 0 50%;
   max-width: 50%;
