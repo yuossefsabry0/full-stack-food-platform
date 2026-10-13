@@ -17,6 +17,7 @@ const TILE_BG = ['#fce7f3', '#ede9fe', '#fef3c7', '#dcfce7', '#ffedd5'];
 export default function AdminProducts() {
   const [products, setProducts] = useState([]);
   const [error, setError] = useState('');
+  const [fieldErrors, setFieldErrors] = useState({});
   const [form, setForm] = useState({ name: '', price: '', description: '', imageUrl: '' });
   const [editingId, setEditingId] = useState(null);
   const [editForm, setEditForm] = useState({ name: '', price: '', description: '', imageUrl: '' });
@@ -39,15 +40,62 @@ export default function AdminProducts() {
     load();
   }, []);
 
+  // Backend add-product failures carry per-field details ({ field, message });
+  // surface each beneath its own input instead of a single generic line.
+  // Details without a matching input fall back to the generic line.
+  function applyFieldErrors(err) {
+    const details = err?.payload?.errors;
+    if (!Array.isArray(details) || details.length === 0) return false;
+    const mapped = {};
+    for (const item of details) {
+      if (typeof item === 'string') continue;
+      const field = item?.field;
+      const message = item?.message;
+      if (
+        typeof field === 'string' &&
+        Object.prototype.hasOwnProperty.call(form, field) &&
+        typeof message === 'string' &&
+        message &&
+        mapped[field] === undefined
+      ) {
+        mapped[field] = message;
+      }
+    }
+    if (Object.keys(mapped).length === 0) return false;
+    setFieldErrors(mapped);
+    return true;
+  }
+
+  function setAdd(key, value) {
+    setForm((f) => ({ ...f, [key]: value }));
+    // Clear that field's own message as soon as the admin edits it again.
+    setFieldErrors((prev) => {
+      if (!prev[key]) return prev;
+      const next = { ...prev };
+      delete next[key];
+      return next;
+    });
+  }
+
   async function onAdd(e) {
     e.preventDefault();
     setError('');
+    setFieldErrors({});
     try {
-      await api.adminAddProduct({ ...form, price: Number(form.price) });
+      // Backend schema rejects empty strings for the optional
+      // description/image (same mapping as saveEdit below): blank means null.
+      await api.adminAddProduct({
+        name: form.name,
+        price: Number(form.price),
+        description: form.description === '' ? null : form.description,
+        imageUrl: form.imageUrl === '' ? null : form.imageUrl,
+      });
       setForm({ name: '', price: '', description: '', imageUrl: '' });
       await load();
     } catch (err) {
-      setError(err.message);
+      // Prefer the field-specific message beneath its input; the generic
+      // line below stays as the fallback for non-field errors.
+      if (!applyFieldErrors(err)) setError(err.message);
     }
   }
 
@@ -156,10 +204,18 @@ export default function AdminProducts() {
         <div className={styles.tableCard} id="admin-add-product" style={{ marginBottom: 16 }}>
           <h3 style={{ margin: '0 0 8px' }}>Add product</h3>
           <form onSubmit={onAdd}>
-            <label className="field">Name<input className="input" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required /></label>
-            <label className="field">Price<input className="input" type="number" step="0.01" value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} required /></label>
-            <label className="field">Description<input className="input" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} /></label>
-            <label className="field">Image URL<input className="input" value={form.imageUrl} onChange={(e) => setForm({ ...form, imageUrl: e.target.value })} /></label>
+            <label className="field">Name<input className="input" value={form.name} onChange={(e) => setAdd('name', e.target.value)} required />
+              {fieldErrors.name && <span className="error" role="alert">{fieldErrors.name}</span>}
+            </label>
+            <label className="field">Price<input className="input" type="number" step="0.01" value={form.price} onChange={(e) => setAdd('price', e.target.value)} required />
+              {fieldErrors.price && <span className="error" role="alert">{fieldErrors.price}</span>}
+            </label>
+            <label className="field">Description<input className="input" value={form.description} onChange={(e) => setAdd('description', e.target.value)} />
+              {fieldErrors.description && <span className="error" role="alert">{fieldErrors.description}</span>}
+            </label>
+            <label className="field">Image URL<input className="input" value={form.imageUrl} onChange={(e) => setAdd('imageUrl', e.target.value)} />
+              {fieldErrors.imageUrl && <span className="error" role="alert">{fieldErrors.imageUrl}</span>}
+            </label>
             <button className="btn btn-primary" type="submit">Add</button>
           </form>
         </div>

@@ -19,7 +19,46 @@ export default function AdminStaff() {
   const role = params.get('role') || '';
   const [staff, setStaff] = useState([]);
   const [error, setError] = useState('');
+  const [fieldErrors, setFieldErrors] = useState({});
   const [form, setForm] = useState({ name: '', username: '', email: '', password: '', role: 'CHEF' });
+
+  // Backend staff-creation failures carry per-field details ({ field, message })
+  // for both validation (400) and taken username/email (409); surface each
+  // beneath its own input instead of a single generic line. Details without
+  // a matching input fall back to the generic line so nothing is hidden.
+  function applyFieldErrors(err) {
+    const details = err?.payload?.errors;
+    if (!Array.isArray(details) || details.length === 0) return false;
+    const mapped = {};
+    for (const item of details) {
+      if (typeof item === 'string') continue;
+      const field = item?.field;
+      const message = item?.message;
+      if (
+        typeof field === 'string' &&
+        Object.prototype.hasOwnProperty.call(form, field) &&
+        typeof message === 'string' &&
+        message &&
+        mapped[field] === undefined
+      ) {
+        mapped[field] = message;
+      }
+    }
+    if (Object.keys(mapped).length === 0) return false;
+    setFieldErrors(mapped);
+    return true;
+  }
+
+  function set(key, value) {
+    setForm((f) => ({ ...f, [key]: value }));
+    // Clear that field's own message as soon as the admin edits it again.
+    setFieldErrors((prev) => {
+      if (!prev[key]) return prev;
+      const next = { ...prev };
+      delete next[key];
+      return next;
+    });
+  }
 
   async function load(r = '') {
     setError('');
@@ -38,12 +77,15 @@ export default function AdminStaff() {
   async function onAdd(e) {
     e.preventDefault();
     setError('');
+    setFieldErrors({});
     try {
       await api.adminAddStaff(form);
       setForm({ name: '', username: '', email: '', password: '', role: 'CHEF' });
       await load(role);
     } catch (err) {
-      setError(err.message);
+      // Prefer the field-specific message beneath its input; the generic
+      // line below stays as the fallback for non-field errors.
+      if (!applyFieldErrors(err)) setError(err.message);
     }
   }
 
@@ -71,16 +113,25 @@ export default function AdminStaff() {
         <div className={styles.tableCard} style={{ marginBottom: 16 }}>
           <h3 style={{ margin: '0 0 8px' }}>Add staff (CHEF / DELIVERY only — backend blocks ADMIN)</h3>
           <form onSubmit={onAdd}>
-            <label className="field">Name<input className="input" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required /></label>
-            <label className="field">Username<input className="input" value={form.username} onChange={(e) => setForm({ ...form, username: e.target.value })} required /></label>
-            <label className="field">Email<input className="input" type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} required /></label>
-            <label className="field">Password<input className="input" type="password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} required /></label>
+            <label className="field">Name<input className="input" value={form.name} onChange={(e) => set('name', e.target.value)} required />
+              {fieldErrors.name && <span className="error" role="alert">{fieldErrors.name}</span>}
+            </label>
+            <label className="field">Username<input className="input" value={form.username} onChange={(e) => set('username', e.target.value)} required />
+              {fieldErrors.username && <span className="error" role="alert">{fieldErrors.username}</span>}
+            </label>
+            <label className="field">Email<input className="input" type="email" value={form.email} onChange={(e) => set('email', e.target.value)} required />
+              {fieldErrors.email && <span className="error" role="alert">{fieldErrors.email}</span>}
+            </label>
+            <label className="field">Password<input className="input" type="password" value={form.password} onChange={(e) => set('password', e.target.value)} required />
+              {fieldErrors.password && <span className="error" role="alert">{fieldErrors.password}</span>}
+            </label>
             <label className="field">
               Role
-              <select className="input" value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value })}>
+              <select className="input" value={form.role} onChange={(e) => set('role', e.target.value)}>
                 <option value="CHEF">CHEF</option>
                 <option value="DELIVERY">DELIVERY</option>
               </select>
+              {fieldErrors.role && <span className="error" role="alert">{fieldErrors.role}</span>}
             </label>
             <button className="btn btn-primary" type="submit">Add staff</button>
           </form>

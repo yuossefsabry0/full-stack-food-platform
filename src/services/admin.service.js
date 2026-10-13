@@ -209,11 +209,18 @@ async function createStaff({ name, username, email, password, role }) {
     select: { username: true, email: true },
   });
   if (existing) {
-    throw fail(
+    const usernameTaken = existing.username === username;
+    const err = fail(
       409,
       'ACCOUNT_EXISTS',
-      existing.username === username ? 'Username is already taken' : 'Email is already registered'
+      usernameTaken ? 'Username is already taken' : 'Email is already registered'
     );
+    // Field pointer so the admin form can highlight the taken input
+    // (same shape as public registration; message text unchanged).
+    err.errors = usernameTaken
+      ? [{ field: 'username', message: 'Username is already taken' }]
+      : [{ field: 'email', message: 'Email is already registered' }];
+    throw err;
   }
   const passwordHash = await hashPassword(password);
   // Same storage as every account (public code allocated, ADMIN never allowed
