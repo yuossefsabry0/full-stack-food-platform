@@ -93,7 +93,7 @@ export default function ChefHistory() {
           <Link to="/chef/requests" className={dash.navLink}>Orders</Link>
           <Link to="/chef/history" className={`${dash.navLink} ${dash.navLinkActive}`}>History</Link>
         </nav>
-        <button type="button" className={dash.logoutBtn} onClick={logout}>↩ Logout</button>
+        <button type="button" className={dash.logoutBtn} onClick={logout}>Logout</button>
       </aside>
       <main className={dash.main}>
         <div className={dash.topbar}>

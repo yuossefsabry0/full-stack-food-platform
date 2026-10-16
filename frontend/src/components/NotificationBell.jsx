@@ -40,17 +40,92 @@ function isToday(iso) {
   }
 }
 
+// Professional line-icon for each notification kind (replaces the former
+// emoji glyphs). Same pastel tile backgrounds as before; no logic changed.
+function NotifGlyph({ kind }) {
+  const common = {
+    width: 19,
+    height: 19,
+    viewBox: '0 0 24 24',
+    fill: 'none',
+    stroke: 'currentColor',
+    strokeWidth: 1.8,
+    strokeLinecap: 'round',
+    strokeLinejoin: 'round',
+    'aria-hidden': true,
+  };
+  if (kind === 'login')
+    return (
+      <svg {...common}>
+        <circle cx="12" cy="8" r="3.5" />
+        <path d="M5 20c1.5-3.5 4-5 7-5s5.5 1.5 7 5" />
+      </svg>
+    );
+  if (kind === 'register')
+    return (
+      <svg {...common}>
+        <path d="M4 9h16v4H4z" />
+        <path d="M6 13v7h12v-7" />
+        <path d="M12 9v11" />
+      </svg>
+    );
+  if (kind === 'placed')
+    return (
+      <svg {...common}>
+        <circle cx="12" cy="12" r="9" />
+        <path d="m8.5 12.5 2.5 2.5 4.5-5.5" />
+      </svg>
+    );
+  if (kind === 'preparing')
+    return (
+      <svg {...common}>
+        <path d="M7 11a3.5 3.5 0 1 1 .6-6.9A4.5 4.5 0 0 1 12 3a4.5 4.5 0 0 1 4.4 1.1A3.5 3.5 0 1 1 17 11H7Z" />
+        <path d="M8.5 14v5h7v-5" />
+      </svg>
+    );
+  if (kind === 'ready')
+    return (
+      <svg {...common}>
+        <path d="m12 3 8 4.5v9L12 21l-8-4.5v-9L12 3Z" />
+        <path d="M12 12 4 7.5M12 12l8-4.5M12 12v9" />
+      </svg>
+    );
+  if (kind === 'way')
+    return (
+      <svg {...common}>
+        <path d="M2.5 6h12v10h-12z" />
+        <path d="M14.5 10h4l3 3.5V16h-7" />
+        <circle cx="7" cy="18" r="1.8" />
+        <circle cx="17" cy="18" r="1.8" />
+      </svg>
+    );
+  if (kind === 'delivered')
+    return (
+      <svg {...common}>
+        <path d="m4 11 8-7 8 7" />
+        <path d="M6 9.5V20h12V9.5" />
+        <path d="M10 20v-5h4v5" />
+      </svg>
+    );
+  return (
+    <svg {...common}>
+      <path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9" />
+      <path d="M13.7 21a2 2 0 0 1-3.4 0" />
+    </svg>
+  );
+}
+
 function iconFor(n) {
   const type = String(n?.type || '');
-  if (type === 'AUTH_LOGIN') return { bg: '#f5f3ff', glyph: '👋' };
-  if (type === 'AUTH_REGISTER') return { bg: '#ecfdf5', glyph: '🎉' };
-  if (type === 'ORDER_PLACED') return { bg: '#ecfdf5', glyph: '✅' };
+  if (type === 'AUTH_LOGIN') return { bg: '#f5f3ff', color: '#7c3aed', kind: 'login' };
+  if (type === 'AUTH_REGISTER') return { bg: '#ecfdf5', color: '#059669', kind: 'register' };
+  if (type === 'ORDER_PLACED') return { bg: '#ecfdf5', color: '#059669', kind: 'placed' };
   const title = String(n?.title || '');
-  if (/prepar/i.test(title)) return { bg: '#fff7ed', glyph: '👨‍🍳' };
-  if (/ready for delivery/i.test(title)) return { bg: '#fff7ed', glyph: '📦' };
-  if (/on the way|out for delivery/i.test(title)) return { bg: '#eff6ff', glyph: '🛵' };
-  if (/deliver/i.test(title)) return { bg: '#ecfdf5', glyph: '🏠' };
-  return { bg: '#faf5ee', glyph: '🔔' };
+  if (/prepar/i.test(title)) return { bg: '#fff7ed', color: '#ea580c', kind: 'preparing' };
+  if (/ready for delivery/i.test(title)) return { bg: '#fff7ed', color: '#d97706', kind: 'ready' };
+  if (/on the way|out for delivery/i.test(title)) return { bg: '#eff6ff', color: '#0284c7', kind: 'way' };
+  if (/deliver/i.test(title)) return { bg: '#ecfdf5', color: '#059669', kind: 'delivered' };
+  return { bg: '#faf5ee', color: '#78716c', kind: 'default' };
 }
 
 function fallbackFromOrders(orders) {
@@ -198,8 +273,8 @@ export default function NotificationBell() {
     const ic = iconFor(n);
     return (
       <button key={n.id} type="button" className={`${styles.item} ${!n.isRead ? styles.itemUnread : ''}`} onClick={() => openItem(n)}>
-        <span className={styles.itemIcon} style={{ background: ic.bg }} aria-hidden="true">
-          {ic.glyph}
+        <span className={styles.itemIcon} style={{ background: ic.bg, color: ic.color }} aria-hidden="true">
+          <NotifGlyph kind={ic.kind} />
         </span>
         <span className={styles.itemBody}>
           <span className={styles.itemTitle}>

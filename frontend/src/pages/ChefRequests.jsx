@@ -199,7 +199,7 @@ export default function ChefRequests() {
           onClick={() => handover(o.id)}
           disabled={busyId === o.id}
         >
-          {busyId === o.id ? 'Handing over…' : '✓ Hand over to delivery'}
+          {busyId === o.id ? 'Handing over…' : 'Hand over to delivery'}
         </button>
       </article>
     );
@@ -225,7 +225,7 @@ export default function ChefRequests() {
         </ul>
         {orderDetails(o)}
         <button className={dash.handoverBtn} disabled title="With delivery now">
-          ✓ Handed over
+          Handed over
         </button>
       </article>
     );
@@ -252,7 +252,7 @@ export default function ChefRequests() {
           <Link to="/chef/requests" className={`${dash.navLink} ${dash.navLinkActive}`}>Orders</Link>
           <Link to="/chef/history" className={dash.navLink}>History</Link>
         </nav>
-        <button type="button" className={dash.logoutBtn} onClick={logout}>↩ Logout</button>
+        <button type="button" className={dash.logoutBtn} onClick={logout}>Logout</button>
       </aside>
       <main className={dash.main}>
         <div className={dash.topbar}>

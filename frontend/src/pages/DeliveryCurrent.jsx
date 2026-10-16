@@ -198,7 +198,7 @@ export default function DeliveryCurrent() {
         </div>
         {orderDetails(o)}
         <button className={dash.handoverBtn} onClick={() => deliver(o.id)} disabled={busyId === o.id}>
-          {busyId === o.id ? 'Delivering…' : '✓ Delivered to customer'}
+          {busyId === o.id ? 'Delivering…' : 'Delivered to customer'}
         </button>
       </article>
     );
@@ -218,7 +218,7 @@ export default function DeliveryCurrent() {
           <Link to="/delivery/current" className={`${dash.navLink} ${dash.navLinkActive}`}>Orders</Link>
           <Link to="/delivery/previous" className={dash.navLink}>History</Link>
         </nav>
-        <button type="button" className={dash.logoutBtn} onClick={logout}>↩ Logout</button>
+        <button type="button" className={dash.logoutBtn} onClick={logout}>Logout</button>
       </aside>
       <main className={dash.main}>
         <div className={dash.topbar}>
