@@ -61,10 +61,6 @@ export default function ProductDetails() {
 
   return (
     <div className={sf.page}>
-      <span className={sf.pageLabel}>
-        <span className={sf.pageLabelDot} aria-hidden="true" />
-        Product Details
-      </span>
       <div style={{ marginTop: 12 }}>
         <button className={sf.ctaGhost} onClick={() => navigate('/menu')} style={{ border: '1px solid #f0e7da' }}>
           ← Menu

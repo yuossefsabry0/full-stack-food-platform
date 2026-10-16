@@ -95,10 +95,6 @@ export default function DeliveryAddress() {
 
   return (
     <div className={sf.page}>
-      <span className={sf.pageLabel}>
-        <span className={sf.pageLabelDot} aria-hidden="true" />
-        Order Page
-      </span>
       <h2 className={sf.sectionTitle} style={{ fontSize: 28, margin: '12px 0 4px' }}>
         Checkout
       </h2>

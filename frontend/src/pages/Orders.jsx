@@ -50,10 +50,6 @@ export default function Orders() {
 
   return (
     <div className={sf.page}>
-      <span className={sf.pageLabel}>
-        <span className={sf.pageLabelDot} aria-hidden="true" />
-        My Orders Page
-      </span>
       <h2 className={sf.sectionTitle} style={{ fontSize: 28, margin: '12px 0 4px' }}>
         My Orders
       </h2>

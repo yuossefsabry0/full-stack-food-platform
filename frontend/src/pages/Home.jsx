@@ -106,11 +106,6 @@ export default function Home() {
 
   return (
     <div className={sf.page}>
-      <span className={sf.pageLabel}>
-        <span className={sf.pageLabelDot} aria-hidden="true" />
-        Home Page
-      </span>
-
       {/* Hero */}
       <section className={sf.hero}>
         <Reveal>

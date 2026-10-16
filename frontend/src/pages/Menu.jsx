@@ -47,11 +47,6 @@ export default function Menu() {
 
   return (
     <div className={sf.page}>
-      <span className={sf.pageLabel}>
-        <span className={sf.pageLabelDot} aria-hidden="true" />
-        Menu Page
-      </span>
-
       <div className={sf.section} style={{ marginTop: 16 }}>
         <h2 className={sf.sectionTitle} style={{ fontSize: 28, marginBottom: 12 }}>
           What are you craving?
