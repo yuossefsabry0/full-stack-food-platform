@@ -9,18 +9,87 @@ import sf from './Storefront.module.css';
 
 // Introductory / showcase page only (no ordering logic, no Cart/Menu buttons —
 // navigation to Cart/Menu happens through the top navbar).
+// Icon-tiles category model: matches the "Categories" icon-tiles card design
+// (active orange tile + pastel icon squares + item counts). All tiles still
+// link to /menu — visual selection only, no filtering logic lives here.
+function CatIcon({ name }) {
+  const common = {
+    width: 24,
+    height: 24,
+    viewBox: '0 0 24 24',
+    fill: 'none',
+    stroke: 'currentColor',
+    strokeWidth: 1.8,
+    strokeLinecap: 'round',
+    strokeLinejoin: 'round',
+    'aria-hidden': true,
+  };
+  if (name === 'Pizza')
+    return (
+      <svg {...common}>
+        <path d="M12 3.5 5.5 19.5c-.3.9.5 1.8 1.4 1.4L20 14.5c1-.4 1-1.8 0-2.2L12 3.5Z" />
+        <path d="M12 3.5 9.8 12l6.4 1.3" />
+        <circle cx="12.6" cy="15.6" r="1" fill="currentColor" stroke="none" />
+        <circle cx="15.2" cy="12.4" r="1" fill="currentColor" stroke="none" />
+      </svg>
+    );
+  if (name === 'Burgers')
+    return (
+      <svg {...common}>
+        <path d="M4 10a8 8 0 0 1 16 0Z" />
+        <path d="M4 13.5h16" />
+        <path d="M4 16.5c0 1.4 1.1 2.5 2.5 2.5h11c1.4 0 2.5-1.1 2.5-2.5H4Z" />
+        <path d="M9 7.5c0-1 .8-1 .8-2M13 7.5c0-1 .8-1 .8-2" />
+      </svg>
+    );
+  if (name === 'Sushi')
+    return (
+      <svg {...common}>
+        <ellipse cx="12" cy="14" rx="7" ry="3.5" />
+        <path d="M5 14c0-2 3-4 7-4s7 2 7 4" />
+        <circle cx="10" cy="13" r="1" fill="currentColor" stroke="none" />
+        <circle cx="14" cy="13.5" r="1" fill="currentColor" stroke="none" />
+        <path d="M9 6.5 15 9M15 6.5 9 9" />
+      </svg>
+    );
+  if (name === 'Salads')
+    return (
+      <svg {...common}>
+        <path d="M4 13h16c0 3-3.5 6-8 6s-8-3-8-6Z" />
+        <path d="M8 13c0-3 1-5 4-6-1 2-1 4 0 6M12 13c0-3.5 1.5-5.5 4.5-6.5-.5 2.5-.5 4.5 0 6.5" />
+      </svg>
+    );
+  if (name === 'Dessert')
+    return (
+      <svg {...common}>
+        <path d="M5 19h14M6 19l1-9h10l1 9" />
+        <path d="M12 10V6.5" />
+        <circle cx="12" cy="5" r="1.4" />
+        <path d="M9 13.5h6" />
+      </svg>
+    );
+  return (
+    <svg {...common}>
+      <path d="M7 9h10l-1.5 10h-7L7 9Z" />
+      <path d="M7 9c0-1.5 1.5-2.5 5-2.5S17 7.5 17 9" />
+      <path d="M13 6.5 15.5 3" />
+    </svg>
+  );
+}
+
 const CATEGORIES = [
-  { name: 'Pizza', icon: '🍕', tile: '#ffe4e6' },
-  { name: 'Burgers', icon: '🍔', tile: '#fef3c7' },
-  { name: 'Sushi', icon: '🍣', tile: '#e0e7ff' },
-  { name: 'Salads', icon: '🥗', tile: '#dcfce7' },
-  { name: 'Dessert', icon: '🍰', tile: '#fce7f3' },
-  { name: 'Drinks', icon: '🥤', tile: '#ffedd5' },
+  { name: 'Pizza', items: 12, iconBg: '#ffedd5', iconColor: '#ea580c' },
+  { name: 'Burgers', items: 9, iconBg: '#fef3c7', iconColor: '#d97706' },
+  { name: 'Sushi', items: 7, iconBg: '#fce7f3', iconColor: '#db2777' },
+  { name: 'Salads', items: 8, iconBg: '#dcfce7', iconColor: '#059669' },
+  { name: 'Dessert', items: 10, iconBg: '#fce7f3', iconColor: '#db2777' },
+  { name: 'Drinks', items: 11, iconBg: '#e0f2fe', iconColor: '#0284c7' },
 ];
 
 export default function Home() {
   const { isAuthenticated } = useAuth();
   const [greeting, setGreeting] = useState('');
+  const [activeCategory, setActiveCategory] = useState('Pizza');
 
   useEffect(() => {
     let cancelled = false;
@@ -73,23 +142,43 @@ export default function Home() {
         </Reveal>
       </section>
 
-      {/* Categories */}
-      <section className={sf.section}>
-        <div className={sf.sectionHead}>
-          <h2 className={sf.sectionTitle}>Categories</h2>
-          <Link className={sf.sectionLink} to="/menu">
-            See all →
-          </Link>
-        </div>
-        <div className={sf.grid}>
-          {CATEGORIES.map((c) => (
-            <Link key={c.name} to="/menu" className={sf.catCard}>
-              <span className={sf.catDot} style={{ background: c.tile }} aria-hidden="true">
-                {c.icon}
-              </span>
-              {c.name}
+      {/* Categories — icon tiles card */}
+      <section className={sf.section} aria-label="Categories">
+        <div className={sf.catPanel}>
+          <div className={sf.sectionHead}>
+            <h2 className={sf.sectionTitle}>Categories</h2>
+            <Link className={sf.sectionLink} to="/menu">
+              See all →
             </Link>
-          ))}
+          </div>
+          <div className={sf.catTiles} role="list">
+            {CATEGORIES.map((c) => {
+              const isActive = activeCategory === c.name;
+              return (
+                <Link
+                  key={c.name}
+                  to="/menu"
+                  role="listitem"
+                  aria-pressed={isActive}
+                  title={`${c.name} — ${c.items} items`}
+                  onClick={() => setActiveCategory(c.name)}
+                  onMouseEnter={() => setActiveCategory(c.name)}
+                  onFocus={() => setActiveCategory(c.name)}
+                  className={`${sf.catTile} ${isActive ? sf.catTileActive : ''}`}
+                >
+                  <span
+                    className={sf.catIcon}
+                    style={isActive ? undefined : { background: c.iconBg, color: c.iconColor }}
+                    aria-hidden="true"
+                  >
+                    <CatIcon name={c.name} />
+                  </span>
+                  <span className={sf.catName}>{c.name}</span>
+                  <span className={sf.catCount}>{c.items} items</span>
+                </Link>
+              );
+            })}
+          </div>
         </div>
       </section>
 
