@@ -84,14 +84,23 @@ export default function AdminProducts() {
     try {
       // Backend schema rejects empty strings for the optional
       // description/image (same mapping as saveEdit below): blank means null.
-      await api.adminAddProduct({
+      const res = await api.adminAddProduct({
         name: form.name,
         price: Number(form.price),
         description: form.description === '' ? null : form.description,
         imageUrl: form.imageUrl === '' ? null : form.imageUrl,
       });
       setForm({ name: '', price: '', description: '', imageUrl: '' });
+      // New products carry the highest ids while lists load oldest-first
+      // with a first-page limit, so reset any filter hiding the new row and
+      // pin the created product (201 response) into view after reloading.
+      setQuery('');
+      setStatusFilter('all');
       await load();
+      const created = res?.data?.product;
+      if (created && created.id) {
+        setProducts((prev) => (prev.some((p) => p.id === created.id) ? prev : [...prev, created]));
+      }
     } catch (err) {
       // Prefer the field-specific message beneath its input; the generic
       // line below stays as the fallback for non-field errors.
@@ -210,10 +219,10 @@ export default function AdminProducts() {
             <label className="field">Price<input className="input" type="number" step="0.01" value={form.price} onChange={(e) => setAdd('price', e.target.value)} required />
               {fieldErrors.price && <span className="error" role="alert">{fieldErrors.price}</span>}
             </label>
-            <label className="field">Description<input className="input" value={form.description} onChange={(e) => setAdd('description', e.target.value)} />
+            <label className="field">Description<input className="input" value={form.description} onChange={(e) => setAdd('description', e.target.value)} required />
               {fieldErrors.description && <span className="error" role="alert">{fieldErrors.description}</span>}
             </label>
-            <label className="field">Image URL<input className="input" value={form.imageUrl} onChange={(e) => setAdd('imageUrl', e.target.value)} />
+            <label className="field">Image URL<input className="input" value={form.imageUrl} onChange={(e) => setAdd('imageUrl', e.target.value)} required />
               {fieldErrors.imageUrl && <span className="error" role="alert">{fieldErrors.imageUrl}</span>}
             </label>
             <button className="btn btn-primary" type="submit">Add</button>
